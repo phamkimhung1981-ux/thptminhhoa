@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useAppContext } from '../store/AppContext';
 import { useAuth } from '../store/AuthContext';
+import { SCHOOL_NAME_UPPER, SCHOOL_SHORT_NAME, SCHOOL_MOTTO } from '../constants/schoolConfig';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ export default function Dashboard() {
   // Background image state: prioritize user's uploaded image if set in localStorage,
   // otherwise fallback to the provided school asset.
   const [bgImage, setBgImage] = useState<string>(() => {
-    return localStorage.getItem('thpt_son_luong_custom_bg') || '/anh_truong_hung.png';
+    return localStorage.getItem('thpt_minh_hoa_custom_bg') || '/anh_truong_hung.png';
   });
 
   // Real-time Date and Time (system time)
@@ -149,7 +150,7 @@ export default function Dashboard() {
         const result = event.target?.result as string;
         if (result) {
           setBgImage(result);
-          localStorage.setItem('thpt_son_luong_custom_bg', result);
+          localStorage.setItem('thpt_minh_hoa_custom_bg', result);
         }
       };
       reader.readAsDataURL(file);
@@ -157,7 +158,7 @@ export default function Dashboard() {
   };
 
   const handleResetBg = () => {
-    localStorage.removeItem('thpt_son_luong_custom_bg');
+    localStorage.removeItem('thpt_minh_hoa_custom_bg');
     setBgImage('/anh_truong_hung.png');
   };
 
@@ -201,7 +202,7 @@ export default function Dashboard() {
             <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full p-1 bg-white/90 backdrop-blur-md border-2 border-[#1457D9]/40 shadow-lg mb-2 flex items-center justify-center hover:scale-105 transition-transform">
               <img 
                 src="/logo.jpg" 
-                alt="THPT Sơn Lương" 
+                alt={SCHOOL_SHORT_NAME} 
                 className="w-full h-full object-contain rounded-full"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
@@ -211,7 +212,7 @@ export default function Dashboard() {
 
             {/* Tên trường chính */}
             <h1 className="font-extrabold text-2xl sm:text-3xl lg:text-4xl text-[#0B3FA8] tracking-tight uppercase drop-shadow-[0_2px_4px_rgba(255,255,255,0.8)] leading-tight">
-              TRƯỜNG THPT SƠN LƯƠNG
+              {SCHOOL_NAME_UPPER}
             </h1>
 
             {/* Khẩu hiệu 3 giá trị cốt lõi */}
@@ -228,7 +229,7 @@ export default function Dashboard() {
               <div className="w-10 sm:w-16 h-[1.5px] bg-[#1457D9]/40 rounded-full" />
               <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#0B3FA8] italic drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)]">
                 <BookOpen size={14} className="text-[#1457D9]" />
-                <span>“Nơi chắp cánh những ước mơ”</span>
+                <span>{SCHOOL_MOTTO}</span>
               </div>
               <div className="w-10 sm:w-16 h-[1.5px] bg-[#1457D9]/40 rounded-full" />
             </div>
@@ -322,7 +323,7 @@ export default function Dashboard() {
                   “Mỗi ngày đến trường là một ngày vui”
                 </p>
                 <p className="text-[10px] sm:text-[11px] font-semibold text-slate-500">
-                  Cổng Điều Hành Giáo Viên - Trường THPT Sơn Lương
+                  Cổng Điều Hành Giáo Viên - Trường THPT Minh Hòa
                 </p>
               </div>
             </div>

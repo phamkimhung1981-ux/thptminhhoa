@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import BackToHomeButton from '../ui/BackToHomeButton';
+import { SCHOOL_NAME, SCHOOL_SHORT_NAME, SCHOOL_ADDRESS } from '../../constants/schoolConfig';
 
 function getModuleTitle(pathname: string): string {
   if (pathname === '/') return 'Giao diện chính / Dashboard';
@@ -62,8 +63,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-2 shrink-0">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/90 border border-blue-200/80 rounded-full text-[11px] font-bold text-[#1457D9] shadow-2xs">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span className="hidden sm:inline">Trường THPT Minh Hòa</span>
-                <span className="sm:hidden">THPT Minh Hòa</span>
+                <span className="hidden sm:inline">{SCHOOL_NAME}</span>
+                <span className="sm:hidden">{SCHOOL_SHORT_NAME}</span>
               </span>
             </div>
           </div>
@@ -76,9 +77,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           {!isDashboard && (
             <footer className="w-full px-4 sm:px-6 lg:px-8 py-6 mt-8 border-t border-[#123B78]/10 text-center relative z-10">
               <div className="flex flex-col items-center justify-center space-y-2">
-                <h3 className="font-bold text-[#123B78] uppercase drop-shadow-sm">Trường THPT Minh Hòa</h3>
+                <h3 className="font-bold text-[#123B78] uppercase drop-shadow-sm">{SCHOOL_NAME}</h3>
                 <p className="text-sm font-medium text-[#123B78] flex items-center justify-center gap-2">
-                  <span className="text-[#3B82F6]">📍</span> Xã Minh Hòa, tỉnh Phú Thọ
+                  <span className="text-[#3B82F6]">📍</span> {SCHOOL_ADDRESS}
                 </p>
                 <div className="w-16 h-0.5 bg-[#3B82F6]/30 my-2 rounded-full"></div>
                 <p className="text-xs font-medium text-[#123B78]/80 italic mt-1">Kiến tạo tương lai từ hôm nay</p>

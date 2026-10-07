@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '../../lib/utils';
+import { SCHOOL_SHORT_NAME_UPPER, SCHOOL_SLOGAN, SCHOOL_SHORT_NAME } from '../../constants/schoolConfig';
 import { 
   X, 
   Home, 
@@ -85,7 +86,7 @@ export default function Sidebar({ isOpen, setIsOpen, hideOnDesktop = false }: Si
           >
             <img 
               src="/logo.jpg" 
-              alt="Logo THPT Minh Hòa" 
+              alt={`Logo ${SCHOOL_SHORT_NAME}`} 
               className="w-full h-full object-contain rounded-full"
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
@@ -95,10 +96,10 @@ export default function Sidebar({ isOpen, setIsOpen, hideOnDesktop = false }: Si
           
           <div className="text-center w-full">
             <h2 className="text-[#123B78] font-bold text-base uppercase mb-0.5 flex flex-col items-center justify-center w-full tracking-tight">
-              THPT MINH HÒA
+              {SCHOOL_SHORT_NAME_UPPER}
             </h2>
             <p className="text-[#1457D9] text-[10.5px] uppercase whitespace-nowrap text-center w-full font-bold tracking-wider">
-              Tri thức - Nhân cách - Tương lai
+              {SCHOOL_SLOGAN}
             </p>
           </div>
         </div>

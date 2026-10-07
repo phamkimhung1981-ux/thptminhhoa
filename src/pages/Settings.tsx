@@ -5,6 +5,7 @@ import { Card } from '../components/ui/Card';
 import Avatar from '../components/ui/Avatar';
 import AvatarModal from '../components/profile/AvatarModal';
 import BackButton from '../components/ui/BackButton';
+import { SCHOOL_NAME, SCHOOL_SYSTEM_TITLE } from '../constants/schoolConfig';
 import { 
   User, 
   Camera, 
@@ -61,7 +62,7 @@ export default function Settings() {
       <div>
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Cài đặt & Hồ sơ cá nhân</h1>
         <p className="text-sm text-slate-500 mt-1">
-          Quản lý tài khoản, cập nhật ảnh đại diện và xem thông tin hệ thống THPT Sơn Lương
+          Quản lý tài khoản, cập nhật ảnh đại diện và xem thông tin hệ thống THPT Minh Hòa
         </p>
       </div>
 
@@ -182,13 +183,13 @@ export default function Settings() {
               <div className="flex justify-between py-2 border-b border-slate-100">
                 <span className="text-slate-500">Tên hệ thống</span>
                 <span className="font-bold text-slate-900">
-                  Hệ Thống Quản Lý Giáo Viên THPT Sơn Lương
+                  {SCHOOL_SYSTEM_TITLE}
                 </span>
               </div>
               <div className="flex justify-between py-2 border-b border-slate-100">
                 <span className="text-slate-500">Đơn vị trường</span>
                 <span className="font-medium text-slate-800">
-                  Trường THPT Sơn Lương
+                  {SCHOOL_NAME}
                 </span>
               </div>
               <div className="flex justify-between py-2 border-b border-slate-100">
@@ -200,12 +201,12 @@ export default function Settings() {
               <div className="flex justify-between py-2 border-b border-slate-100">
                 <span className="text-slate-500">Website Production</span>
                 <a 
-                  href="https://webquanlythptsonluong.vercel.app/" 
+                  href="https://webquanlythptminhhoa.vercel.app/" 
                   target="_blank" 
                   rel="noopener noreferrer" 
                   className="font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 text-xs sm:text-sm"
                 >
-                  webquanlythptsonluong.vercel.app
+                  webquanlythptminhhoa.vercel.app
                 </a>
               </div>
               <div className="flex justify-between py-2 border-b border-slate-100">

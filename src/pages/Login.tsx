@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../store/AuthContext';
 import { ThreeDIcon } from '../components/ui/ThreeDIcon';
+import { SCHOOL_NAME, SCHOOL_SHORT_NAME } from '../constants/schoolConfig';
 
 export default function Login() {
   const { login, error } = useAuth();
@@ -21,7 +22,7 @@ export default function Login() {
         <img
           src="/hhhh.jpg"
           className="w-full h-full object-contain object-center opacity-10 p-12"
-          alt="Trường THPT Sơn Lương"
+          alt={SCHOOL_NAME}
         />
       </div>
       <div className="absolute inset-0 bg-slate-50/80 backdrop-blur-sm pointer-events-none"></div>
@@ -35,7 +36,7 @@ export default function Login() {
         <h2 className="mt-4 text-center text-3xl font-black text-slate-900 tracking-tight">
           Hệ Thống Quản Lý
           <br />
-          <span className="text-blue-700">Giáo Viên THPT Sơn Lương</span>
+          <span className="text-blue-700">Giáo Viên {SCHOOL_SHORT_NAME}</span>
         </h2>
         <p className="mt-2 text-center text-sm font-semibold text-slate-500">
           Đăng nhập để truy cập hệ thống

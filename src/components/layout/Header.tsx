@@ -21,6 +21,7 @@ import { useAppContext } from '../../store/AppContext';
 import Avatar from '../ui/Avatar';
 import AvatarModal from '../profile/AvatarModal';
 import BackToHomeButton from '../ui/BackToHomeButton';
+import { SCHOOL_NAME_UPPER, SCHOOL_SLOGAN_UPPER, SCHOOL_SHORT_NAME } from '../../constants/schoolConfig';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -104,7 +105,7 @@ export default function Header({ onMenuClick, isDashboard }: HeaderProps) {
             <div className="relative w-11 h-11 rounded-full p-0.5 bg-white border border-[#3B82F6]/30 shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <img 
                 src="/logo.jpg" 
-                alt="Logo THPT Minh Hòa" 
+                alt={`Logo ${SCHOOL_SHORT_NAME}`} 
                 className="w-full h-full object-contain rounded-full"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
@@ -114,10 +115,10 @@ export default function Header({ onMenuClick, isDashboard }: HeaderProps) {
 
             <div className="flex flex-col">
               <span className="font-extrabold text-[#123B78] text-sm lg:text-[15px] tracking-tight uppercase leading-tight group-hover:text-[#1457D9] transition-colors">
-                TRƯỜNG THPT MINH HÒA
+                {SCHOOL_NAME_UPPER}
               </span>
               <span className="text-[9.5px] lg:text-[10.5px] font-bold text-[#1457D9] tracking-wider uppercase leading-tight">
-                TRI THỨC - NHÂN CÁCH - TƯƠNG LAI
+                {SCHOOL_SLOGAN_UPPER}
               </span>
             </div>
           </div>
