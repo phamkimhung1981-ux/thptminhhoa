@@ -1,0 +1,8 @@
+{
+  "name": "Trường THPT Minh Hòa",
+  "description": "Phần mềm quản lý giáo viên, theo dõi nền nếp, giao việc và báo cáo dành cho trường THPT.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,36 @@
+--- src/types.ts
++++ src/types.ts
+@@ -55,10 +55,34 @@
+   evidenceUrl?: string;
+ }
+ 
++export interface EvaluationCategory {
++  id: string;
++  name: string;
++  code?: string;
++  description?: string;
++  order: number;
++  status: 'active' | 'inactive';
++}
++
++export interface EvaluationCriterion {
++  id: string;
++  categoryId: string;
++  name: string;
++  code?: string;
++  description?: string;
++  order: number;
++  status: 'active' | 'inactive';
++}
++
+ export interface TaskEvaluation {
+   result: 'Hoàn thành tốt' | 'Hoàn thành' | 'Chưa hoàn thành' | 'Chậm/muộn' | 'Không thực hiện' | 'Đang thực hiện' | '';
+   actualCompletionDate?: string;
+   comment?: string;
++  criteriaResults?: Record<string, 'Tốt' | 'Đạt' | 'Chưa đạt' | 'Vi phạm' | ''>; // key: criterionId, value: result
++  criteriaComments?: Record<string, string>; // key: categoryId or criterionId, value: comment
++  kpiRecordId?: string; // If recorded to KPI
+   kpiCriteriaId?: string;
+   evaluatorId: string;
+   evaluatedAt: string;
+ }

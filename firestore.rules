@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /classes/{document=**} {
+      allow read, write: if true;
+    }
+    match /students/{document=**} {
+      allow read, write: if true;
+    }
+    match /homeroom_assignments/{document=**} {
+      allow read, write: if true;
+    }
+    match /conduct_categories/{document=**} {
+      allow read, write: if true;
+    }
+    match /conduct_criteria/{document=**} {
+      allow read, write: if true;
+    }
+    match /conduct_records/{document=**} {
+      allow read, write: if true;
+    }
+    match /conduct_evaluations/{document=**} {
+      allow read, write: if true;
+    }
+    match /conduct_settings/{document=**} {
+      allow read, write: if true;
+    }
+    match /evaluation_rating_configs/{document=**} {
+      allow read, write: if true;
+    }
+    match /evaluation_rating_config_history/{document=**} {
+      allow read, write: if true;
+    }
+    match /student_training_evaluations/{document=**} {
+      allow read, write: if true;
+    }
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

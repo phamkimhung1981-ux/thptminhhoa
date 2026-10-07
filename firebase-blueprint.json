@@ -1,0 +1,463 @@
+{
+  "entities": {
+    "teachers": {
+      "title": "Teacher",
+      "description": "Teacher and staff profiles",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "code": { "type": "string" },
+        "subject": { "type": "string" },
+        "departmentId": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "name", "code"]
+    },
+    "departments": {
+      "title": "Department",
+      "description": "School departments",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "headId": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
+    "kpiGroups": {
+      "title": "KPI Group",
+      "description": "Cấp 1: Nhóm KPI (KPI_GROUP)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "order": { "type": "number" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "code", "name"]
+    },
+    "kpiCategories": {
+      "title": "KPI Category",
+      "description": "Cấp 2: Nhóm tiêu chí KPI (KPI_CATEGORY)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "groupId": { "type": "string" },
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "order": { "type": "number" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "groupId", "code", "name"]
+    },
+    "kpis": {
+      "title": "KPI Criterion",
+      "description": "Cấp 3: Tiêu chí KPI thành phần (KPI_CRITERION)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "groupId": { "type": "string" },
+        "categoryId": { "type": "string" },
+        "name": { "type": "string" },
+        "standardScore": { "type": "number" },
+        "pointValue": { "type": "number" },
+        "pointType": { "type": "string" },
+        "unit": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "code", "groupId", "name"]
+    },
+    "kpiRecords": {
+      "title": "KPI Record",
+      "description": "Evaluations and monthly records of KPI",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "teacherId": { "type": "string" },
+        "kpiId": { "type": "string" },
+        "date": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "teacherId", "kpiId"]
+    },
+    "kpiEvaluationForms": {
+      "title": "KPI Evaluation Form",
+      "description": "Phiếu đánh giá KPI theo tháng có chỉ định người đánh giá và ảnh chụp bộ tiêu chí",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "teacherId": { "type": "string" },
+        "teacherName": { "type": "string" },
+        "teacherCode": { "type": "string" },
+        "targetGroup": { "type": "string" },
+        "month": { "type": "string" },
+        "academicYear": { "type": "string" },
+        "evaluatorId": { "type": "string" },
+        "evaluatorName": { "type": "string" },
+        "evaluatorPosition": { "type": "string" },
+        "evaluatorDepartment": { "type": "string" },
+        "status": { "type": "string" },
+        "totalStandardScore": { "type": "number" },
+        "totalMinusScore": { "type": "number" },
+        "totalPlusScore": { "type": "number" },
+        "totalKpiScore": { "type": "number" },
+        "items": { "type": "array" }
+      },
+      "required": ["id", "teacherId", "evaluatorId", "month", "academicYear", "status"]
+    },
+    "kpi_cbql_forms": {
+      "title": "KPI CBQL Form",
+      "description": "Phiếu đánh giá KPI Cán bộ Quản lý - Trường THPT Minh Hòa (100 điểm)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "evaluateeId": { "type": "string" },
+        "evaluateeName": { "type": "string" },
+        "periodId": { "type": "string" },
+        "periodName": { "type": "string" },
+        "academicYear": { "type": "string" },
+        "evaluatorId": { "type": "string" },
+        "evaluatorName": { "type": "string" },
+        "status": { "type": "string" },
+        "selfTotalScore": { "type": "number" },
+        "evaluatorTotalScore": { "type": "number" },
+        "grade": { "type": "string" },
+        "items": { "type": "array" }
+      },
+      "required": ["id", "evaluateeId", "periodId", "evaluatorId", "status"]
+    },
+    "kpi_cbql_periods": {
+      "title": "KPI CBQL Period",
+      "description": "Kỳ đánh giá KPI CBQL",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "academicYear": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "name", "academicYear"]
+    },
+    "kpi_cbql_audit_logs": {
+      "title": "KPI CBQL Audit Log",
+      "description": "Nhật ký kiểm tra thay đổi phiếu KPI CBQL",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "formId": { "type": "string" },
+        "action": { "type": "string" },
+        "performedById": { "type": "string" },
+        "performedByName": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "formId", "action", "timestamp"]
+    },
+    "classes": {
+      "title": "Class Info",
+      "description": "Lớp học tại Trường THPT Minh Hòa",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "grade": { "type": "number" },
+        "schoolYear": { "type": "string" },
+        "homeroomTeacherId": { "type": "string" },
+        "homeroomTeacherName": { "type": "string" },
+        "totalStudents": { "type": "number" }
+      },
+      "required": ["id", "name", "grade"]
+    },
+    "students": {
+      "title": "Student",
+      "description": "Học sinh theo lớp",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "classId": { "type": "string" },
+        "className": { "type": "string" },
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "full_name": { "type": "string" },
+        "fullName": { "type": "string" },
+        "gender": { "type": "string" },
+        "dob": { "type": "string" },
+        "stt": { "type": "number" },
+        "parentPhone": { "type": "string" },
+        "parentName": { "type": "string" },
+        "address": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "classId", "code", "name"]
+    },
+    "homeroom_assignments": {
+      "title": "Homeroom Assignment",
+      "description": "Phân công giáo viên chủ nhiệm lớp",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "teacherId": { "type": "string" },
+        "teacherName": { "type": "string" },
+        "classId": { "type": "string" },
+        "className": { "type": "string" },
+        "schoolYear": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "teacherId", "classId"]
+    },
+    "conduct_categories": {
+      "title": "Conduct Category",
+      "description": "Nhóm tiêu chí rèn luyện / nền nếp",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "sortOrder": { "type": "number" }
+      },
+      "required": ["id", "code", "name"]
+    },
+    "conduct_criteria": {
+      "title": "Conduct Criterion",
+      "description": "Tiêu chí theo dõi nền nếp & rèn luyện",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "categoryId": { "type": "string" },
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "pointType": { "type": "string" },
+        "defaultPoint": { "type": "number" }
+      },
+      "required": ["id", "categoryId", "code", "name"]
+    },
+    "conduct_records": {
+      "title": "Conduct Record",
+      "description": "Ghi nhận vi phạm / điểm tốt rèn luyện hằng ngày",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "classId": { "type": "string" },
+        "criterionId": { "type": "string" },
+        "pointType": { "type": "string" },
+        "point": { "type": "number" },
+        "recordDate": { "type": "string" }
+      },
+      "required": ["id", "studentId", "classId", "criterionId", "point"]
+    },
+    "conduct_evaluations": {
+      "title": "Conduct Evaluation",
+      "description": "Đánh giá kết quả rèn luyện & xác nhận của BGH",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "classId": { "type": "string" },
+        "period": { "type": "string" },
+        "totalScore": { "type": "number" },
+        "classification": { "type": "string" },
+        "confirmationStatus": { "type": "string" }
+      },
+      "required": ["id", "studentId", "classId", "period"]
+    },
+    "conduct_settings": {
+      "title": "Conduct Settings",
+      "description": "Cấu hình điểm rèn luyện khởi điểm & ngưỡng xếp loại",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "schoolYear": { "type": "string" },
+        "baseScore": { "type": "number" },
+        "thresholds": { "type": "object" }
+      },
+      "required": ["id", "baseScore"]
+    },
+    "teacher_assessments": {
+      "title": "Teacher Assessment",
+      "description": "Phiếu ghi nhận đánh giá trực tiếp của Giáo viên chủ nhiệm",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "classId": { "type": "string" },
+        "teacherId": { "type": "string" },
+        "semester": { "type": "string" },
+        "schoolYear": { "type": "string" },
+        "recordDate": { "type": "string" },
+        "comment": { "type": "string" },
+        "levelRating": { "type": "string" },
+        "teacherProposedRating": { "type": "string" }
+      },
+      "required": ["id", "studentId", "classId", "semester", "schoolYear"]
+    },
+    "workAssignments": {
+      "title": "Work Assignment",
+      "description": "Bảng phân công giao việc theo tuần của trường THPT Minh Hòa",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "departmentId": { "type": "string" },
+        "weekLabel": { "type": "string" },
+        "workDate": { "type": "string" },
+        "content": { "type": "string" },
+        "assigneeId": { "type": "string" },
+        "assigneeIds": { "type": "array" },
+        "deadline": { "type": "string" },
+        "evaluatorId": { "type": "string" },
+        "priority": { "type": "string" },
+        "status": { "type": "string" },
+        "progress": { "type": "number" },
+        "requirements": { "type": "string" },
+        "resultSummary": { "type": "string" },
+        "evidenceUrl": { "type": "string" },
+        "note": { "type": "string" }
+      },
+      "required": ["id", "content", "workDate", "deadline", "status"]
+    },
+    "evaluation_rating_configs": {
+      "title": "Evaluation Rating Config",
+      "description": "Cấu hình phân loại và ngưỡng điểm xếp loại rèn luyện học sinh",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "school_id": { "type": "string" },
+        "name": { "type": "string" },
+        "school_year": { "type": "string" },
+        "evaluation_period_type": { "type": "string" },
+        "evaluation_period_id": { "type": "string" },
+        "tiers": { "type": "array" },
+        "is_active": { "type": "boolean" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["id", "name", "school_year", "tiers"]
+    },
+    "evaluation_rating_config_history": {
+      "title": "Evaluation Rating Config History",
+      "description": "Lịch sử thay đổi và điều chỉnh cấu hình xếp loại học sinh",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "config_id": { "type": "string" },
+        "action": { "type": "string" },
+        "performed_by": { "type": "string" },
+        "performed_at": { "type": "string" },
+        "before_change": { "type": "array" },
+        "after_change": { "type": "array" }
+      },
+      "required": ["id", "config_id", "action", "performed_by", "performed_at", "after_change"]
+    },
+    "student_training_evaluations": {
+      "title": "Student Training Evaluation",
+      "description": "Đánh giá 04 nội dung rèn luyện riêng của học sinh do GVCN thực hiện",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "student_id": { "type": "string" },
+        "school_year": { "type": "string" },
+        "class_id": { "type": "string" },
+        "homeroom_teacher_id": { "type": "string" },
+        "atgt_status": { "type": "string", "enum": ["dat", "chua_dat"] },
+        "violence_status": { "type": "string", "enum": ["dat", "chua_dat"] },
+        "cheating_status": { "type": "string", "enum": ["dat", "chua_dat"] },
+        "smoking_status": { "type": "string", "enum": ["dat", "chua_dat"] },
+        "note": { "type": "string" },
+        "atgt_note": { "type": "string" },
+        "violence_note": { "type": "string" },
+        "cheating_note": { "type": "string" },
+        "smoking_note": { "type": "string" },
+        "updated_at": { "type": "string" },
+        "updated_by": { "type": "string" }
+      },
+      "required": [
+        "id",
+        "student_id",
+        "school_year",
+        "class_id",
+        "homeroom_teacher_id",
+        "atgt_status",
+        "violence_status",
+        "cheating_status",
+        "smoking_status",
+        "updated_at",
+        "updated_by"
+      ]
+    },
+    "schoolWorkSchedules": {
+      "title": "School Work Schedule",
+      "description": "Lịch giao việc toàn trường và tổ chuyên môn theo tuần",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "department_id": { "type": "string" },
+        "department_name": { "type": "string" },
+        "week_number": { "type": "number" },
+        "week_start_date": { "type": "string" },
+        "week_end_date": { "type": "string" },
+        "school_year": { "type": "string" },
+        "title": { "type": "string" },
+        "days": { "type": "array" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["id", "department_id", "week_number", "school_year", "days"]
+    },
+    "youth_discipline_criteria": {
+      "title": "Youth Discipline Criterion",
+      "description": "Tiêu chí chấm điểm nền nếp của Đoàn Thanh niên",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "minusPoints": { "type": "number" },
+        "severity": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "code", "name", "category", "minusPoints"]
+    },
+    "youth_discipline_violations": {
+      "title": "Youth Discipline Violation",
+      "description": "Bản ghi vi phạm nề nếp học sinh do Đoàn TN ghi nhận",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "schoolYear": { "type": "string" },
+        "weekNumber": { "type": "number" },
+        "violationDate": { "type": "string" },
+        "classId": { "type": "string" },
+        "studentId": { "type": "string" },
+        "criterionId": { "type": "string" },
+        "minusPoints": { "type": "number" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "schoolYear", "weekNumber", "classId", "criterionId", "minusPoints"]
+    },
+    "youth_discipline_weekly_locks": {
+      "title": "Youth Discipline Weekly Lock",
+      "description": "Trạng thái chốt khóa tuần thi đua nền nếp",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "schoolYear": { "type": "string" },
+        "weekNumber": { "type": "number" },
+        "isLocked": { "type": "boolean" },
+        "lockedBy": { "type": "string" }
+      },
+      "required": ["id", "schoolYear", "weekNumber", "isLocked"]
+    }
+  }
+}

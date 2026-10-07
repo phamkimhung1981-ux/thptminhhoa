@@ -1,0 +1,257 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4B9CF5" />
+      <stop offset="40%" stop-color="#89C4F4" />
+      <stop offset="75%" stop-color="#C8E6C9" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#FFF9C4" stop-opacity="0.4" />
+    </linearGradient>
+    <linearGradient id="mountainGradFar" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#437982" />
+      <stop offset="100%" stop-color="#2D5A5B" />
+    </linearGradient>
+    <linearGradient id="mountainGradMid" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#387F39" />
+      <stop offset="100%" stop-color="#1F4E24" />
+    </linearGradient>
+    <linearGradient id="mountainGradClose" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4A8B3B" />
+      <stop offset="100%" stop-color="#276326" />
+    </linearGradient>
+    <linearGradient id="wallGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFEAA7" />
+      <stop offset="100%" stop-color="#FDCB6E" />
+    </linearGradient>
+    <linearGradient id="roofGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#E17055" />
+      <stop offset="100%" stop-color="#D63031" />
+    </linearGradient>
+    <linearGradient id="yardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#D7CCC8" />
+      <stop offset="50%" stop-color="#EFEBE9" />
+      <stop offset="100%" stop-color="#CFD8DC" />
+    </linearGradient>
+    <linearGradient id="stoneGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#90A4AE" />
+      <stop offset="50%" stop-color="#607D8B" />
+      <stop offset="100%" stop-color="#455A64" />
+    </linearGradient>
+    <filter id="softShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.18" />
+    </filter>
+  </defs>
+
+  <!-- SKY -->
+  <rect width="1920" height="1080" fill="url(#skyGrad)" />
+
+  <!-- CLOUDS -->
+  <g opacity="0.65">
+    <ellipse cx="320" cy="180" rx="180" ry="45" fill="#FFFFFF" />
+    <ellipse cx="400" cy="160" rx="130" ry="50" fill="#FFFFFF" />
+    <ellipse cx="1520" cy="220" rx="220" ry="55" fill="#FFFFFF" />
+    <ellipse cx="1620" cy="195" rx="140" ry="45" fill="#FFFFFF" />
+  </g>
+
+  <!-- FAR MOUNTAINS -->
+  <path d="M0,580 Q280,340 600,450 T1200,380 T1700,420 T1920,490 L1920,700 L0,700 Z" fill="url(#mountainGradFar)" opacity="0.85" />
+
+  <!-- MID MOUNTAINS -->
+  <path d="M0,610 Q350,420 750,480 T1450,440 T1920,530 L1920,720 L0,720 Z" fill="url(#mountainGradMid)" opacity="0.9" />
+
+  <!-- CLOSE MOUNTAINS & HILLS -->
+  <path d="M0,640 Q240,490 520,540 T1100,510 T1650,530 T1920,580 L1920,740 L0,740 Z" fill="url(#mountainGradClose)" />
+
+  <!-- BACK ROWS OF TREES -->
+  <g fill="#1B5E20" opacity="0.95">
+    <ellipse cx="150" cy="660" rx="120" ry="90" />
+    <ellipse cx="280" cy="650" rx="130" ry="100" />
+    <ellipse cx="420" cy="660" rx="110" ry="80" />
+    <ellipse cx="1480" cy="660" rx="120" ry="85" />
+    <ellipse cx="1620" cy="650" rx="130" ry="95" />
+    <ellipse cx="1780" cy="660" rx="140" ry="90" />
+  </g>
+
+  <!-- SCHOOL BUILDING (MAIN STRUCTURE) -->
+  <g filter="url(#softShadow)">
+    <!-- Base podium -->
+    <rect x="360" y="690" width="1200" height="35" fill="#B0BEC5" />
+    <rect x="340" y="715" width="1240" height="20" fill="#78909C" />
+
+    <!-- Left Wing (2 floors) -->
+    <rect x="390" y="500" width="400" height="195" fill="url(#wallGrad)" />
+    <polygon points="370,500 790,500 770,470 390,470" fill="url(#roofGrad)" />
+
+    <!-- Right Wing (2 floors) -->
+    <rect x="1130" y="500" width="400" height="195" fill="url(#wallGrad)" />
+    <polygon points="1130,500 1550,500 1530,470 1150,470" fill="url(#roofGrad)" />
+
+    <!-- Left Wing Windows -->
+    <g fill="#1565C0" opacity="0.85">
+      <!-- Floor 1 -->
+      <rect x="420" y="610" width="45" height="65" rx="4" />
+      <rect x="485" y="610" width="45" height="65" rx="4" />
+      <rect x="550" y="610" width="45" height="65" rx="4" />
+      <rect x="615" y="610" width="45" height="65" rx="4" />
+      <rect x="680" y="610" width="45" height="65" rx="4" />
+      <rect x="745" y="610" width="35" height="65" rx="4" />
+      <!-- Floor 2 -->
+      <rect x="420" y="525" width="45" height="60" rx="4" />
+      <rect x="485" y="525" width="45" height="60" rx="4" />
+      <rect x="550" y="525" width="45" height="60" rx="4" />
+      <rect x="615" y="525" width="45" height="60" rx="4" />
+      <rect x="680" y="525" width="45" height="60" rx="4" />
+      <rect x="745" y="525" width="35" height="60" rx="4" />
+    </g>
+
+    <!-- Right Wing Windows -->
+    <g fill="#1565C0" opacity="0.85">
+      <!-- Floor 1 -->
+      <rect x="1150" y="610" width="45" height="65" rx="4" />
+      <rect x="1215" y="610" width="45" height="65" rx="4" />
+      <rect x="1280" y="610" width="45" height="65" rx="4" />
+      <rect x="1345" y="610" width="45" height="65" rx="4" />
+      <rect x="1410" y="610" width="45" height="65" rx="4" />
+      <rect x="1475" y="610" width="40" height="65" rx="4" />
+      <!-- Floor 2 -->
+      <rect x="1150" y="525" width="45" height="60" rx="4" />
+      <rect x="1215" y="525" width="45" height="60" rx="4" />
+      <rect x="1280" y="525" width="45" height="60" rx="4" />
+      <rect x="1345" y="525" width="45" height="60" rx="4" />
+      <rect x="1410" y="525" width="45" height="60" rx="4" />
+      <rect x="1475" y="525" width="40" height="60" rx="4" />
+    </g>
+
+    <!-- Center Pavilion (3 floors - taller & prominent) -->
+    <rect x="780" y="430" width="360" height="265" fill="url(#wallGrad)" stroke="#D4AC0D" stroke-width="2" />
+    
+    <!-- Triangle pediment / roof -->
+    <polygon points="760,430 1160,430 960,360" fill="url(#roofGrad)" />
+    <!-- Clock or School Emblem on pediment -->
+    <circle cx="960" cy="405" r="18" fill="#FFFFFF" stroke="#D32F2F" stroke-width="3" />
+    <circle cx="960" cy="405" r="4" fill="#1565C0" />
+
+    <!-- Center Banners on Main Building -->
+    <!-- Red Banner 1: DẠY TỐT - HỌC TỐT -->
+    <rect x="825" y="445" width="270" height="38" rx="6" fill="#D32F2F" stroke="#FFD54F" stroke-width="2" />
+    <text x="960" y="470" fill="#FFFFFF" font-family="sans-serif" font-size="18" font-weight="bold" text-anchor="middle" letter-spacing="2">DẠY TỐT - HỌC TỐT</text>
+
+    <!-- Red Banner 2: VÌ HỌC SINH THÂN YÊU -->
+    <rect x="845" y="595" width="230" height="32" rx="5" fill="#C62828" stroke="#FFCA28" stroke-width="1.5" />
+    <text x="960" y="617" fill="#FFFFFF" font-family="sans-serif" font-size="14" font-weight="bold" text-anchor="middle" letter-spacing="1.5">VÌ HỌC SINH THÂN YÊU</text>
+
+    <!-- Center Arched Door & Pillars -->
+    <!-- Floor 3 windows -->
+    <g fill="#1E88E5">
+      <rect x="840" y="505" width="45" height="65" rx="4" />
+      <rect x="905" y="505" width="50" height="65" rx="4" />
+      <rect x="975" y="505" width="45" height="65" rx="4" />
+      <rect x="1035" y="505" width="45" height="65" rx="4" />
+    </g>
+
+    <!-- Center Main Entrance Arch -->
+    <path d="M925,695 L925,645 A35,35 0 0,1 995,645 L995,695 Z" fill="#1A237E" />
+    <rect x="920" y="640" width="80" height="8" fill="#FFD54F" />
+
+    <!-- Architectural Pillars -->
+    <rect x="800" y="485" width="16" height="205" fill="#FFF9C4" />
+    <rect x="905" y="485" width="14" height="205" fill="#FFF9C4" />
+    <rect x="1005" y="485" width="14" height="205" fill="#FFF9C4" />
+    <rect x="1105" y="485" width="16" height="205" fill="#FFF9C4" />
+
+    <!-- Side Vertical Red Banners (left and right pillars) -->
+    <rect x="795" y="510" width="38" height="155" rx="4" fill="#D32F2F" />
+    <text x="814" y="535" fill="#FFF" font-size="10" font-weight="bold" text-anchor="middle" font-family="sans-serif">
+      <tspan x="814" dy="0">TRI</tspan>
+      <tspan x="814" dy="15">THỨC</tspan>
+      <tspan x="814" dy="15">TẠO</tspan>
+      <tspan x="814" dy="15">NÊN</tspan>
+      <tspan x="814" dy="15">TƯƠNG</tspan>
+      <tspan x="814" dy="15">LAI</tspan>
+    </text>
+
+    <rect x="1085" y="510" width="38" height="155" rx="4" fill="#D32F2F" />
+    <text x="1104" y="535" fill="#FFF" font-size="10" font-weight="bold" text-anchor="middle" font-family="sans-serif">
+      <tspan x="1104" dy="0">NHÂN</tspan>
+      <tspan x="1104" dy="15">CÁCH</tspan>
+      <tspan x="1104" dy="15">LÀM</tspan>
+      <tspan x="1104" dy="15">NÊN</tspan>
+      <tspan x="1104" dy="15">GIÁ</tspan>
+      <tspan x="1104" dy="15">TRỊ</tspan>
+    </text>
+
+    <!-- NATIONAL FLAGPOLE & VIETNAM FLAG -->
+    <line x1="630" y1="270" x2="630" y2="710" stroke="#B0BEC5" stroke-width="4" />
+    <!-- Waving Flag -->
+    <path d="M632,275 Q685,260 725,280 Q685,305 632,320 Z" fill="#D50000" />
+    <!-- Gold Star in Flag -->
+    <polygon points="670,285 675,297 688,297 678,305 682,317 670,310 658,317 662,305 652,297 665,297" fill="#FFEA00" />
+  </g>
+
+  <!-- YARD (BRICK PAVEMENT) -->
+  <polygon points="0,730 1920,730 1920,1080 0,1080" fill="url(#yardGrad)" />
+
+  <!-- PAVING PATTERN LINES (Perspective) -->
+  <g stroke="#BCAAA4" stroke-width="1" opacity="0.4">
+    <line x1="960" y1="730" x2="960" y2="1080" />
+    <line x1="800" y1="730" x2="600" y2="1080" />
+    <line x1="1120" y1="730" x2="1320" y2="1080" />
+    <line x1="640" y1="730" x2="240" y2="1080" />
+    <line x1="1280" y1="730" x2="1680" y2="1080" />
+    <line x1="480" y1="730" x2="-120" y2="1080" />
+    <line x1="1440" y1="730" x2="2040" y2="1080" />
+    <line x1="0" y1="780" x2="1920" y2="780" />
+    <line x1="0" y1="840" x2="1920" y2="840" />
+    <line x1="0" y1="915" x2="1920" y2="915" />
+    <line x1="0" y1="1005" x2="1920" y2="1005" />
+  </g>
+
+  <!-- TREES IN FRONT YARD -->
+  <!-- Left Royal Poinciana Tree (Hoa Phượng Vĩ) with Red Blossoms -->
+  <g>
+    <!-- Trunk & Branches -->
+    <path d="M220,760 Q210,650 180,560 Q140,500 90,460" stroke="#5D4037" stroke-width="22" fill="none" stroke-linecap="round" />
+    <path d="M190,600 Q240,540 280,480" stroke="#5D4037" stroke-width="15" fill="none" stroke-linecap="round" />
+    <!-- Green Leaves -->
+    <circle cx="140" cy="450" r="90" fill="#2E7D32" opacity="0.85" />
+    <circle cx="240" cy="460" r="80" fill="#388E3C" opacity="0.85" />
+    <circle cx="180" cy="380" r="70" fill="#43A047" opacity="0.85" />
+    <!-- Vibrant Red Poinciana Flowers (Hoa Phượng) -->
+    <circle cx="120" cy="420" r="24" fill="#D50000" />
+    <circle cx="150" cy="400" r="28" fill="#FF1744" />
+    <circle cx="190" cy="360" r="22" fill="#FF5252" />
+    <circle cx="220" cy="390" r="26" fill="#D50000" />
+    <circle cx="250" cy="430" r="25" fill="#FF1744" />
+    <circle cx="280" cy="470" r="20" fill="#FF5252" />
+    <circle cx="170" cy="470" r="22" fill="#D50000" />
+    <circle cx="100" cy="460" r="18" fill="#FF1744" />
+  </g>
+
+  <!-- Right Tree & Flowering Shrubs -->
+  <g>
+    <circle cx="1700" cy="660" r="110" fill="#2E7D32" />
+    <circle cx="1620" cy="680" r="85" fill="#388E3C" />
+    <!-- Pink Lagerstroemia / Bougainvillea Flowers (Hoa Bằng Lăng / Giấy) -->
+    <circle cx="1660" cy="650" r="35" fill="#E91E63" opacity="0.9" />
+    <circle cx="1720" cy="640" r="40" fill="#F06292" opacity="0.85" />
+  </g>
+
+  <!-- STONE MONUMENT ON THE LEFT: "Tiên học Lễ - Hậu học Văn" -->
+  <g filter="url(#softShadow)">
+    <path d="M110,880 C80,780 120,680 160,620 C200,580 260,620 280,700 C300,770 290,850 270,890 Z" fill="url(#stoneGrad)" stroke="#CFD8DC" stroke-width="3" />
+    <!-- Engraved Calligraphy on Stone -->
+    <text x="195" y="690" fill="#FFFFFF" font-family="Georgia, serif" font-style="italic" font-size="24" font-weight="bold" text-anchor="middle" letter-spacing="1">Tiên học</text>
+    <text x="195" y="735" fill="#FFEB3B" font-family="Georgia, serif" font-style="italic" font-size="32" font-weight="bold" text-anchor="middle">Lễ</text>
+    <text x="195" y="780" fill="#FFFFFF" font-family="Georgia, serif" font-style="italic" font-size="24" font-weight="bold" text-anchor="middle" letter-spacing="1">Hậu học</text>
+    <text x="195" y="825" fill="#FFEB3B" font-family="Georgia, serif" font-style="italic" font-size="32" font-weight="bold" text-anchor="middle">Văn</text>
+    <!-- Open Book icon on stone base -->
+    <path d="M175,850 C185,845 195,845 205,850 C215,845 225,845 235,850 L235,862 C225,857 215,857 205,862 C195,857 185,857 175,862 Z" fill="#FFFFFF" />
+  </g>
+
+  <!-- FLOWER BEDS ALONG BOTTOM CORNERS -->
+  <g opacity="0.85">
+    <ellipse cx="40" cy="1020" rx="100" ry="50" fill="#E91E63" />
+    <ellipse cx="120" cy="1040" rx="80" ry="40" fill="#F48FB1" />
+    <ellipse cx="1880" cy="1020" rx="100" ry="50" fill="#E91E63" />
+    <ellipse cx="1800" cy="1040" rx="80" ry="40" fill="#F48FB1" />
+  </g>
+</svg>
