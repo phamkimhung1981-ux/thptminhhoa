@@ -501,7 +501,7 @@ export async function exportEvaluationToDocx({
                 new Paragraph({
                   alignment: AlignmentType.CENTER,
                   children: [
-                    new TextRun({ text: 'TRƯỜNG THPT SƠN LƯƠNG', bold: true, size: 21 }),
+                    new TextRun({ text: 'TRƯỜNG THPT MINH HÒA', bold: true, size: 21 }),
                   ],
                 }),
                 new Paragraph({
@@ -679,7 +679,7 @@ export async function exportEvaluationToDocx({
               spacing: { before: 40, after: 200 },
               children: [
                 new TextRun({ text: '• Đơn vị công tác: ', bold: true, size: 20 }),
-                new TextRun({ text: 'Trường THPT Sơn Lương', size: 20 }),
+                new TextRun({ text: 'Trường THPT Minh Hòa', size: 20 }),
                 new TextRun({ text: '        • Ngày đánh giá: ', bold: true, size: 20 }),
                 new TextRun({ text: evalDate, size: 20 }),
               ],
@@ -770,7 +770,7 @@ export async function exportEvaluationToDocx({
             new Paragraph({
               spacing: { before: 200, after: 150 },
               children: [
-                new TextRun({ text: 'Sơn Lương, ngày .... tháng .... năm 202...', italics: true, size: 19 }),
+                new TextRun({ text: 'Minh Hòa, ngày .... tháng .... năm 202...', italics: true, size: 19 }),
               ],
               alignment: AlignmentType.RIGHT,
             }),

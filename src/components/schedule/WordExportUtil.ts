@@ -336,7 +336,7 @@ export async function exportScheduleToWord(schedule: WeeklySchedule) {
                         alignment: AlignmentType.CENTER,
                         children: [
                           new TextRun({
-                            text: schedule.footer?.principal_name || 'Nguyễn Quang Sáng',
+                            text: schedule.footer?.principal_name || 'Trịnh Việt Phương',
                             bold: true,
                             size: 22,
                             font: 'Times New Roman'

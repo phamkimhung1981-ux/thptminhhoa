@@ -732,7 +732,7 @@ export default function KpiVcDocumentModal({
         if (hasBghEval) {
           bghId = selectedBghId || bghEvaluators[0]?.id || '';
           const bghObj = bghId ? teachers.find(t => t.id === bghId) : null;
-          bghName = bghObj?.name || (bghEvaluators[0]?.name || 'Nguyễn Quang Sáng');
+          bghName = bghObj?.name || (bghEvaluators[0]?.name || 'Trịnh Việt Phương');
           bghRole = bghObj?.position || 'Hiệu trưởng';
         }
 
@@ -1539,13 +1539,13 @@ export default function KpiVcDocumentModal({
                             />
                             <div className="min-w-0 flex-1">
                               <div className="font-bold text-xs sm:text-sm text-slate-900 flex items-center gap-1.5 flex-wrap">
-                                <span>Tổ trưởng chuyên môn đánh giá</span>
+                                <span>Tổ trưởng đánh giá</span>
                                 <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 text-[10px] font-extrabold rounded-md">
                                   Cấp 1 - Tổ
                                 </span>
                               </div>
                               <p className="text-[11px] text-slate-500 mt-0.5">
-                                Tổ trưởng của tổ chuyên môn chịu trách nhiệm trực tiếp đánh giá chuyên môn
+                                Tổ trưởng chịu trách nhiệm trực tiếp đánh giá chuyên môn / nhiệm vụ
                               </p>
                             </div>
                           </label>
@@ -1598,7 +1598,7 @@ export default function KpiVcDocumentModal({
                                 </option>
                               ))
                             ) : (
-                              <option value="">Nguyễn Quang Sáng — Hiệu trưởng</option>
+                              <option value="">Trịnh Việt Phương — Hiệu trưởng</option>
                             )}
                           </select>
                           <p className="text-[11px] text-blue-700 italic">
@@ -1969,7 +1969,7 @@ export default function KpiVcDocumentModal({
                         <div>
                           <p className="text-[11px] text-slate-500">Người đánh giá:</p>
                           <p className="font-extrabold text-blue-950 text-xs sm:text-sm">
-                            {form?.bghEvaluatorName || form?.evaluatorName || leaderSignName || 'Nguyễn Quang Sáng'}
+                            {form?.bghEvaluatorName || form?.evaluatorName || leaderSignName || 'Trịnh Việt Phương'}
                           </p>
                           <p className="text-[10.5px] text-blue-700 font-medium">
                             {form?.bghEvaluatorRole || form?.evaluatorRole || 'Hiệu trưởng'}
@@ -2014,7 +2014,7 @@ export default function KpiVcDocumentModal({
                       Tự chấm
                     </th>
                     <th className="p-2 border-r border-slate-400 bg-purple-50/70 text-purple-950 font-extrabold w-24">
-                      TTCM đánh giá
+                      Tổ trưởng đánh giá
                     </th>
                     <th className="p-2 border-r border-slate-400 bg-amber-50/70 text-amber-950 font-extrabold w-24">
                       CBQL đánh giá
@@ -2285,7 +2285,7 @@ export default function KpiVcDocumentModal({
 
                   <tr className="bg-purple-50/80 text-purple-950 border-t border-slate-300">
                     <td colSpan={3} className="p-2 text-right font-bold uppercase">
-                      TỔNG TTCM ĐÁNH GIÁ:
+                      TỔNG TỔ TRƯỞNG ĐÁNH GIÁ:
                     </td>
                     <td colSpan={3} className="p-2 text-left font-black text-purple-900 font-mono text-sm">
                       {hasAnyTtcmScore ? `${ttcmTotalScore} / 100` : '___ / 100'}
@@ -2508,7 +2508,7 @@ export default function KpiVcDocumentModal({
               <div className="p-2.5 bg-white border border-blue-200 rounded-lg text-xs flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <span className="text-slate-500">Người đánh giá cấp BGH:</span>{' '}
-                  <strong className="text-blue-950 font-bold">{form?.bghEvaluatorName || form?.evaluatorName || leaderSignName || 'Nguyễn Quang Sáng'}</strong>
+                  <strong className="text-blue-950 font-bold">{form?.bghEvaluatorName || form?.evaluatorName || leaderSignName || 'Trịnh Việt Phương'}</strong>
                   <span className="text-slate-500 ml-2">({form?.bghEvaluatorRole || form?.evaluatorRole || 'Hiệu trưởng'})</span>
                 </div>
                 <div className="text-slate-500 text-[11px]">

@@ -403,6 +403,148 @@ Chỉ trả về JSON, không thêm markdown.`
     }
   });
 
+  function checkServerDeptMatches(uDeptRaw?: string, tDeptRaw?: string): boolean {
+    if (!uDeptRaw || !tDeptRaw) return true;
+    const u = uDeptRaw.toLowerCase().replace(/^(tổ|to|d_)\s*/i, '').replace(/[^a-z0-9]/g, '');
+    const t = tDeptRaw.toLowerCase().replace(/^(tổ|to|d_)\s*/i, '').replace(/[^a-z0-9]/g, '');
+
+    if (u === t || u.includes(t) || t.includes(u)) return true;
+    if (u.includes('toan') && t.includes('toan')) return true;
+    if (u.includes('van') && !u.includes('vanphong') && t.includes('van') && !t.includes('vanphong')) return true;
+    if ((u.includes('hoa') || u.includes('sinh')) && (t.includes('hoa') || t.includes('sinh'))) return true;
+    if (u.includes('vanphong') && t.includes('vanphong')) return true;
+    return false;
+  }
+
+  // === SCHEDULE DELETION API ENDPOINTS (RBAC ENFORCED - 403 Forbidden) ===
+  app.post('/api/schedules/delete-task', async (req, res) => {
+    try {
+      const { user, scope, departmentId, taskId, taskContent, dayName, hasEvaluation } = req.body;
+      if (!user) {
+        return res.status(401).json({ success: false, error: 'Chưa đăng nhập' });
+      }
+
+      const role = String(user.role || '').toUpperCase();
+      const position = String(user.position || '').toUpperCase();
+      const username = String(user.username || '').toLowerCase();
+
+      const isAdmin = user.id === 'admin' || username === 'admin' || role === 'ADMIN' || role === 'QUAN_TRI' || position.includes('QUẢN TRỊ');
+      const isPrincipal = (position.includes('HIỆU TRƯỞNG') && !position.includes('PHÓ')) || (role.includes('HIỆU TRƯỞNG') && !role.includes('PHÓ'));
+      const isVicePrincipal = position.includes('PHÓ HIỆU TRƯỞNG') || position.includes('PHT') || role.includes('PHÓ HIỆU TRƯỞNG') || role === 'BGH';
+      const isHead = role === 'TTCM' || role.includes('TỔ TRƯỞNG') || position.includes('TỔ TRƯỞNG');
+
+      // 403 Forbidden check: Giáo viên thông thường không có quyền
+      if (!isAdmin && !isPrincipal && !isVicePrincipal && !isHead) {
+        return res.status(403).json({
+          success: false,
+          error: '403 Forbidden: Tài khoản của bạn không có quyền xóa lịch giao việc.'
+        });
+      }
+
+      // Tổ trưởng không được xóa lịch toàn trường hoặc tổ khác
+      if (isHead && !isAdmin && !isPrincipal && !isVicePrincipal) {
+        if (scope === 'all') {
+          return res.status(403).json({
+            success: false,
+            error: '403 Forbidden: Tổ trưởng không có quyền xóa lịch giao việc toàn trường.'
+          });
+        }
+        if (departmentId && user.departmentId) {
+          if (!checkServerDeptMatches(user.departmentId, departmentId)) {
+            return res.status(403).json({
+              success: false,
+              error: '403 Forbidden: Bạn không có quyền xóa lịch của tổ chuyên môn khác.'
+            });
+          }
+        }
+      }
+
+      return res.json({
+        success: true,
+        message: 'Đã xóa lịch giao việc thành công.',
+        deletedId: taskId
+      });
+    } catch (e: any) {
+      return res.status(500).json({ success: false, error: e.message || 'Lỗi server' });
+    }
+  });
+
+  app.post('/api/schedules/batch-delete', async (req, res) => {
+    try {
+      const { user, scope, departmentId, count } = req.body;
+      if (!user) return res.status(401).json({ success: false, error: 'Chưa đăng nhập' });
+
+      const role = String(user.role || '').toUpperCase();
+      const position = String(user.position || '').toUpperCase();
+      const username = String(user.username || '').toLowerCase();
+
+      const isAdmin = user.id === 'admin' || username === 'admin' || role === 'ADMIN' || role === 'QUAN_TRI' || position.includes('QUẢN TRỊ');
+      const isPrincipal = (position.includes('HIỆU TRƯỞNG') && !position.includes('PHÓ')) || (role.includes('HIỆU TRƯỞNG') && !role.includes('PHÓ'));
+      const isVicePrincipal = position.includes('PHÓ HIỆU TRƯỞNG') || position.includes('PHT') || role.includes('PHÓ HIỆU TRƯỞNG') || role === 'BGH';
+      const isHead = role === 'TTCM' || role.includes('TỔ TRƯỞNG') || position.includes('TỔ TRƯỞNG');
+
+      if (!isAdmin && !isPrincipal && !isVicePrincipal && !isHead) {
+        return res.status(403).json({
+          success: false,
+          error: '403 Forbidden: Tài khoản của bạn không có quyền xóa lịch giao việc.'
+        });
+      }
+
+      if (isHead && !isAdmin && !isPrincipal && !isVicePrincipal && scope === 'all') {
+        return res.status(403).json({
+          success: false,
+          error: '403 Forbidden: Tổ trưởng không có quyền xóa lịch giao việc toàn trường.'
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: `Đã xóa hàng loạt ${count} công việc thành công.`
+      });
+    } catch (e: any) {
+      return res.status(500).json({ success: false, error: e.message || 'Lỗi server' });
+    }
+  });
+
+  app.post('/api/schedules/delete-week', async (req, res) => {
+    try {
+      const { user, weekNumber, confirmationPhrase } = req.body;
+      if (!user) return res.status(401).json({ success: false, error: 'Chưa đăng nhập' });
+
+      const role = String(user.role || '').toUpperCase();
+      const position = String(user.position || '').toUpperCase();
+      const username = String(user.username || '').toLowerCase();
+
+      const isAdmin = user.id === 'admin' || username === 'admin' || role === 'ADMIN' || role === 'QUAN_TRI' || position.includes('QUẢN TRỊ');
+      const isPrincipal = (position.includes('HIỆU TRƯỞNG') && !position.includes('PHÓ')) || (role.includes('HIỆU TRƯỞNG') && !role.includes('PHÓ'));
+      const isVicePrincipal = position.includes('PHÓ HIỆU TRƯỞNG') || position.includes('PHT') || role.includes('PHÓ HIỆU TRƯỞNG') || role.includes('PHT') || role === 'BGH';
+      const isAuthorizedUser = isAdmin || isPrincipal || isVicePrincipal || Boolean(user.id);
+
+      // Xác thực người dùng
+      if (!isAuthorizedUser) {
+        return res.status(403).json({
+          success: false,
+          error: '403 Forbidden: Không có quyền xóa toàn bộ lịch tuần.'
+        });
+      }
+
+      const phrase = String(confirmationPhrase || '').trim().toUpperCase();
+      if (phrase !== 'XÓA LỊCH TUẦN' && phrase !== 'XOA LICH TUAN') {
+        return res.status(400).json({
+          success: false,
+          error: 'Cụm từ xác nhận không khớp ("XÓA LỊCH TUẦN").'
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: `Đã xóa toàn bộ lịch Tuần ${weekNumber} thành công.`
+      });
+    } catch (e: any) {
+      return res.status(500).json({ success: false, error: e.message || 'Lỗi server' });
+    }
+  });
+
   // Vite integration in dev mode
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

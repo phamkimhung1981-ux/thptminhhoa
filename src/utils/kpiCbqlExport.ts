@@ -9,7 +9,7 @@ export function exportSingleCbqlFormToExcel(form: KpiCbqlForm) {
 
   // Header cơ quan
   wsData.push(['SỞ GD&ĐT LÀO CAI', '', '', 'CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM']);
-  wsData.push(['TRƯỜNG THPT SƠN LƯƠNG', '', '', 'Độc lập - Tự do - Hạnh phúc']);
+  wsData.push(['TRƯỜNG THPT MINH HÒA', '', '', 'Độc lập - Tự do - Hạnh phúc']);
   wsData.push(['', '', '', '------------------------']);
   wsData.push(['']);
   wsData.push(['PHIẾU ĐÁNH GIÁ KẾT QUẢ THỰC HIỆN NHIỆM VỤ (KPI) CỦA CÁN BỘ QUẢN LÝ']);
@@ -84,7 +84,7 @@ export function exportSingleCbqlFormToExcel(form: KpiCbqlForm) {
   wsData.push(['Ý KIẾN ĐÁNH GIÁ, NHẬN XÉT CỦA THỦ TRƯỞNG / CẤP TRÊN:']);
   wsData.push([form.evaluatorComment || '(Không có)']);
   wsData.push(['']);
-  wsData.push(['', '', '', 'Sơn Lương, ngày ..... tháng ..... năm 202...']);
+  wsData.push(['', '', '', 'Minh Hòa, ngày ..... tháng ..... năm 202...']);
   wsData.push(['NGƯỜI TỰ ĐÁNH GIÁ', '', '', 'THỦ TRƯỞNG ĐƠN VỊ ĐÁNH GIÁ']);
   wsData.push(['(Ký, ghi rõ họ tên)', '', '', '(Ký, ghi rõ họ tên và đóng dấu)']);
   wsData.push(['']);

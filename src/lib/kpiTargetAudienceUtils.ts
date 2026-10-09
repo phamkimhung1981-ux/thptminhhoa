@@ -77,11 +77,11 @@ export const formatTargetAudienceBadges = (target?: string | string[]): string =
 };
 
 /**
- * BỘ TIÊU CHÍ CHUẨN CỦA 4 ĐỐI TƯỢNG (THPT SƠN LƯƠNG)
+ * BỘ TIÊU CHÍ CHUẨN CỦA 4 ĐỐI TƯỢNG (THPT MINH HÒA)
  * Dùng để snapshot trực tiếp vào Phiếu đánh giá KPI khi tạo mới
  */
 /**
- * BỘ TIÊU CHÍ CHUẨN CỦA 4 ĐỐI TƯỢNG THEO ĐÚNG FILE QUY ĐỊNH (THPT SƠN LƯƠNG)
+ * BỘ TIÊU CHÍ CHUẨN CỦA 4 ĐỐI TƯỢNG THEO ĐÚNG FILE QUY ĐỊNH (THPT MINH HÒA)
  * Dùng để SNAPSHOT trực tiếp vào Phiếu đánh giá KPI khi tạo mới (100 điểm nền)
  */
 export interface KpiTemplateCriterion {
@@ -2128,12 +2128,13 @@ export function findTtcmForDepartment(
     });
     if (ttcmByName) return ttcmByName;
 
-    // 4. Khớp theo từ khóa đặc trưng (Toán, Tin, Hóa, Lý, Sinh, Văn, Sử, Địa, Ngoại ngữ, Văn phòng)
+    // 4. Khớp theo từ khóa đặc trưng của 05 tổ chuyên môn chính thức
     const keywords = [
-      { key: 'toan', match: ['toan', 'tin', 'cn', 'congnghe'] },
-      { key: 'hoa', match: ['hoa', 'ly', 'sinh', 'gdqpan', 'qpan', 'nn', 'tienganh'] },
-      { key: 'van', match: ['van', 'su', 'dia', 'gdkt', 'pl', 'an', 'nguvan', 'lichsu', 'diali'] },
-      { key: 'vanphong', match: ['vanphong', 'hanhchinh', 'ketoan', 'yte', 'thuvien'] }
+      { key: 'toan_cong_nghe', match: ['toan', 'cong nghe', 'congnghe', 'cn'] },
+      { key: 'van_su_dia_gdkt', match: ['van', 'su', 'dia', 'gdkt', 'nguvan', 'lichsu', 'diali'] },
+      { key: 'ly_hoa_sinh', match: ['ly', 'vatli', 'vatly', 'hoa', 'sinh'] },
+      { key: 'ngoai_ngu_tin_hoc_gdtc_gdqpan', match: ['ngoaingu', 'tienganh', 'tin', 'tinhoc', 'gdtc', 'theduc', 'gdqp', 'qpan'] },
+      { key: 'van_phong', match: ['vanphong', 'hanhchinh', 'ketoan', 'yte', 'thuvien', 'thietbi', 'thuquy', 'vanthu'] }
     ];
 
     for (const group of keywords) {
@@ -2230,24 +2231,77 @@ export function getDepartmentTtcmDropdownOptions(
 }
 
 /**
- * Kiểm tra xem một nhân sự có thuộc danh sách LOẠI TRỪ khỏi vai trò Cán bộ quản lý đánh giá / Cán bộ quản lý đề xuất hay không:
- * 1. Nguyễn Trung Kiên
- * 2. Trần Thị Thu Hiền
+ * Kiểm tra xem một nhân sự có thuộc danh sách LOẠI TRỪ khỏi vai trò Cán bộ quản lý đánh giá (Thủ trưởng) hay không:
+ * 1. Nguyễn Quang Sáng
+ * 2. Phạm Kim Hùng
+ * 3. Nguyễn Anh Hòa
+ * 4. Trần Thị Thu Hiền
  */
-export function isExcludedCbqlEvaluator(teacher?: Partial<Teacher> | null): boolean {
+export function isExcludedCbqlEvaluator(teacher?: Partial<Teacher> | any | null): boolean {
   if (!teacher) return false;
   const id = String(teacher.id || '').trim();
-  if (id === 'd8sotdwua') return true;
+  if (id === 'd8sotdwua' || id === 't_ht' || id === 't_pht1' || id === 't_pht2') return true;
 
   const rawName = String(teacher.name || '').trim().toLowerCase();
   const normalizedName = rawName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const email = String(teacher.email || '').trim().toLowerCase();
+  const username = String(teacher.username || '').trim().toLowerCase();
 
+  // 1. Nguyễn Quang Sáng
   if (
-    rawName.includes('trần thị thu hiền') || 
-    normalizedName.includes('tran thi thu hien')
+    rawName.includes('nguyễn quang sáng') ||
+    normalizedName.includes('nguyen quang sang') ||
+    rawName.includes('quang sáng') ||
+    normalizedName.includes('quang sang') ||
+    rawName.includes('ông sáng') ||
+    rawName.includes('thầy sáng') ||
+    email.includes('quangsang') ||
+    username.includes('quangsang')
   ) {
     return true;
   }
+
+  // 2. Phạm Kim Hùng
+  if (
+    rawName.includes('phạm kim hùng') ||
+    normalizedName.includes('pham kim hung') ||
+    rawName.includes('kim hùng') ||
+    normalizedName.includes('kim hung') ||
+    rawName.includes('ông hùng') ||
+    rawName.includes('thầy hùng') ||
+    email.includes('phamkimhung') ||
+    email.includes('kimhung') ||
+    email === 'phamkimhung1981@gmail.com' ||
+    username.includes('phamkimhung') ||
+    username.includes('kimhung')
+  ) {
+    return true;
+  }
+
+  // 3. Nguyễn Anh Hòa
+  if (
+    rawName.includes('nguyễn anh hòa') ||
+    normalizedName.includes('nguyen anh hoa') ||
+    rawName.includes('anh hòa') ||
+    normalizedName.includes('anh hoa') ||
+    rawName.includes('ông hòa') ||
+    rawName.includes('thầy hòa') ||
+    email.includes('anhhoa') ||
+    username.includes('anhhoa')
+  ) {
+    return true;
+  }
+
+  // 4. Trần Thị Thu Hiền
+  if (
+    rawName.includes('trần thị thu hiền') || 
+    normalizedName.includes('tran thi thu hien') ||
+    email.includes('thuhien') ||
+    username.includes('thuhien')
+  ) {
+    return true;
+  }
+
   return false;
 }
 

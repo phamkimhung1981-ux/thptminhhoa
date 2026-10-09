@@ -8,7 +8,7 @@ export function exportStudentListToExcel(className: string, schoolYear: string, 
   const excelData: any[] = [];
 
   // Title headers
-  excelData.push(['TRƯỜNG THPT SƠN LƯƠNG']);
+  excelData.push(['TRƯỜNG THPT MINH HÒA']);
   excelData.push([`DANH SÁCH HỌC SINH LỚP ${className.toUpperCase()}`]);
   excelData.push([`Năm học: ${schoolYear} | Tổng số: ${students.length} học sinh`]);
   excelData.push([]); // blank line
@@ -91,7 +91,7 @@ export function downloadStudentTemplateExcel(className: string = '11A') {
     className,
     '0912345678',
     'Nguyễn Văn Bằng',
-    'Thôn 1, Sơn Lương, Văn Chấn'
+    'Thôn 1, Minh Hòa, Văn Chấn'
   ]);
   excelData.push([
     2,
@@ -102,7 +102,7 @@ export function downloadStudentTemplateExcel(className: string = '11A') {
     className,
     '0987654321',
     'Trần Văn Cường',
-    'Thôn 2, Sơn Lương, Văn Chấn'
+    'Thôn 2, Minh Hòa, Văn Chấn'
   ]);
   excelData.push([
     3,
@@ -113,7 +113,7 @@ export function downloadStudentTemplateExcel(className: string = '11A') {
     className,
     '0934567890',
     'Lê Văn Dũng',
-    'Thôn 3, Sơn Lương, Văn Chấn'
+    'Thôn 3, Minh Hòa, Văn Chấn'
   ]);
 
   const worksheet = XLSX.utils.aoa_to_sheet(excelData);

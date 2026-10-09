@@ -109,7 +109,7 @@ export default function WordExcelImportModal({
         footer: {
           working_time: 'Thời gian làm việc: Sáng 7h00-11h30; Chiều 13h30-17h00',
           recipients: '- BGH;\n- Niêm yết bảng tin;\n- Lưu VT.',
-          principal_name: 'Nguyễn Quang Sáng'
+          principal_name: 'Trịnh Việt Phương'
         },
         created_at: new Date().toISOString()
       };

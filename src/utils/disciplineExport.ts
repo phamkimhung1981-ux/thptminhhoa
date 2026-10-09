@@ -74,7 +74,7 @@ export function exportDisciplineSessionsToExcel({
   // Trang 1: Tổng hợp danh sách phiếu
   const summaryRows: any[] = [];
   summaryRows.push(['SỞ GIÁO DỤC VÀ ĐÀO TẠO TỈNH LÀO CAI']);
-  summaryRows.push(['TRƯỜNG THPT SƠN LƯƠNG']);
+  summaryRows.push(['TRƯỜNG THPT MINH HÒA']);
   summaryRows.push([]);
   summaryRows.push([titleText.toUpperCase()]);
   summaryRows.push([`Ngày xuất báo cáo: ${new Date().toLocaleDateString('vi-VN')}`]);
@@ -169,7 +169,7 @@ export function exportDisciplineSessionsToExcel({
   // Trang 2: Chi tiết từng tiêu chí nền nếp
   const detailRows: any[] = [];
   detailRows.push(['SỞ GIÁO DỤC VÀ ĐÀO TẠO TỈNH LÀO CAI']);
-  detailRows.push(['TRƯỜNG THPT SƠN LƯƠNG']);
+  detailRows.push(['TRƯỜNG THPT MINH HÒA']);
   detailRows.push([]);
   detailRows.push(['CHI TIẾT NHẬN XÉT TỪNG TIÊU CHÍ NỀN NẾP & NỘI QUY']);
   detailRows.push([]);
@@ -282,7 +282,7 @@ export async function exportDisciplineSessionToDocx({
                 }),
                 new Paragraph({
                   alignment: AlignmentType.CENTER,
-                  children: [new TextRun({ text: 'TRƯỜNG THPT SƠN LƯƠNG', bold: true, size: 20 })],
+                  children: [new TextRun({ text: 'TRƯỜNG THPT MINH HÒA', bold: true, size: 20 })],
                 }),
                 new Paragraph({
                   alignment: AlignmentType.CENTER,
@@ -603,7 +603,7 @@ export async function exportDisciplineSessionToDocx({
             new Paragraph({
               spacing: { before: 200, after: 150 },
               children: [
-                new TextRun({ text: 'Sơn Lương, ngày .... tháng .... năm 202...', italics: true, size: 18 }),
+                new TextRun({ text: 'Minh Hòa, ngày .... tháng .... năm 202...', italics: true, size: 18 }),
               ],
               alignment: AlignmentType.RIGHT,
             }),

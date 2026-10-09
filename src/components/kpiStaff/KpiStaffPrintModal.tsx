@@ -60,7 +60,7 @@ export default function KpiStaffPrintModal({ isOpen, onClose, form }: Props) {
             <p><strong>Họ và tên:</strong> ................................................................ <span className="font-bold text-slate-900">{form.employeeName}</span></p>
             <p><strong>Chức danh/vị trí việc làm:</strong> ................................... <span className="font-bold text-slate-900">{form.position || posConfig.positionName}</span></p>
             <p><strong>Bộ phận/Tổ văn phòng:</strong> ............................................ <span className="font-bold text-slate-900">{form.department || 'Tổ văn phòng'}</span></p>
-            <p><strong>Người đánh giá:</strong> ........................................................ <span className="font-bold text-slate-900">{form.evaluatorName || 'TTVP/BGH'}</span></p>
+            <p><strong>Người đánh giá:</strong> ........................................................ <span className="font-bold text-slate-900">{form.evaluatorName || 'Tổ trưởng / BGH'}</span></p>
             <p className="text-[11px] italic text-slate-600 pt-1">
               <strong>Cấu trúc điểm:</strong> 30 điểm KPI chung + 70 điểm KPI theo đúng vị trí việc làm. Chỉ kích hoạt một bộ KPI vị trí cho mỗi nhân viên.
             </p>
@@ -177,7 +177,7 @@ export default function KpiStaffPrintModal({ isOpen, onClose, form }: Props) {
           </div>
 
           {/* Signatures */}
-          <div className="pt-8 grid grid-cols-2 text-center text-xs font-sans">
+          <div className="pt-8 grid grid-cols-3 text-center text-xs font-sans">
             <div className="space-y-1">
               <p className="font-bold uppercase">NHÂN VIÊN TỰ ĐÁNH GIÁ</p>
               <p className="text-[10px] italic text-slate-500">(Ký và ghi rõ họ tên)</p>
@@ -186,10 +186,17 @@ export default function KpiStaffPrintModal({ isOpen, onClose, form }: Props) {
             </div>
 
             <div className="space-y-1">
+              <p className="font-bold uppercase">TỔ TRƯỞNG ĐÁNH GIÁ</p>
+              <p className="text-[10px] italic text-slate-500">(Ký và ghi rõ họ tên)</p>
+              <div className="h-16" />
+              <p className="font-bold">{form.evaluatorName || 'Tổ trưởng'}</p>
+            </div>
+
+            <div className="space-y-1">
               <p className="font-bold uppercase">BGH PHÊ DUYỆT</p>
               <p className="text-[10px] italic text-slate-500">(Ký và ghi rõ họ tên)</p>
               <div className="h-16" />
-              <p className="font-bold">{form.evaluatorName || 'Phạm Kim Hùng'}</p>
+              <p className="font-bold">Trịnh Việt Phương</p>
             </div>
           </div>
 

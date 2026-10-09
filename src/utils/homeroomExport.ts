@@ -49,7 +49,7 @@ export function exportHomeroomToExcel({
   const excelData: any[] = [];
 
   // Title
-  excelData.push(['TRƯỜNG THPT SƠN LƯƠNG']);
+  excelData.push(['TRƯỜNG THPT MINH HÒA']);
   excelData.push([`BẢNG THEO DÕI NỀN NẾP VÀ ĐÁNH GIÁ RÈN LUYỆN HỌC SINH - LỚP ${className.toUpperCase()}`]);
   excelData.push([`Năm học: ${schoolYear} | Thời gian: ${periodLabel} | GVCN: ${homeroomTeacherName || 'Chưa phân công'}`]);
   excelData.push([]); // blank line
@@ -116,7 +116,7 @@ export function exportHomeroomToExcel({
 
   // Footer summary
   excelData.push([]);
-  excelData.push(['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', `Sơn Lương, ngày .... tháng .... năm 20...`]);
+  excelData.push(['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', `Minh Hòa, ngày .... tháng .... năm 20...`]);
   excelData.push(['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'GIÁO VIÊN CHỦ NHIỆM']);
   excelData.push(['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '(Ký và ghi rõ họ tên)']);
 

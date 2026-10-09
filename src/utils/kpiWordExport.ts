@@ -152,7 +152,7 @@ export const exportVcFormToWord = async (form: KpiVcForm): Promise<void> => {
           <tr>
             <td style="width: 45%; text-align: center;">
               <p class="font-bold uppercase" style="font-size: 10.5pt;">SỞ GD&ĐT PHÚ THỌ</p>
-              <p class="font-bold uppercase" style="font-size: 11.5pt;">TRƯỜNG THPT SƠN LƯƠNG</p>
+              <p class="font-bold uppercase" style="font-size: 11.5pt;">TRƯỜNG THPT MINH HÒA</p>
               <div style="border-bottom: 1px solid black; width: 90px; margin: 2pt auto;"></div>
             </td>
             <td style="width: 55%; text-align: center;">
@@ -176,14 +176,14 @@ export const exportVcFormToWord = async (form: KpiVcForm): Promise<void> => {
         <div style="margin-bottom: 10pt; font-size: 11.5pt; line-height: 1.4;">
           <p><span class="font-bold">Họ và tên:</span> ${form.employeeName || ''}</p>
           <p><span class="font-bold">Chức vụ / môn:</span> ${form.position || 'Giáo viên'} ${form.subject ? `• Môn ${form.subject}` : ''}</p>
-          <p><span class="font-bold">Tổ chuyên môn:</span> ${form.department || 'Trường THPT Sơn Lương'}</p>
+          <p><span class="font-bold">Tổ chuyên môn:</span> ${form.department || 'Trường THPT Minh Hòa'}</p>
           <p><span class="font-bold">Tổ trưởng chuyên môn đánh giá:</span> ${form.ttcmEvaluatorName || '....................'} &nbsp;&nbsp;&nbsp;&nbsp; <span class="font-bold">Tổ:</span> ${form.ttcmEvaluatorDepartment || form.department || '....................'}</p>
           <p><span class="font-bold">Ban Giám hiệu đánh giá:</span> ${form.bghEvaluatorName || form.evaluatorName || '....................'} &nbsp;&nbsp;&nbsp;&nbsp; <span class="font-bold">Chức vụ:</span> ${form.bghEvaluatorRole || form.evaluatorRole || 'Ban Giám hiệu'}</p>
         </div>
 
         <!-- CĂN CỨ MẪU PHIẾU -->
         <p style="font-size: 10.5pt; text-align: justify; margin-bottom: 10pt; font-style: italic; line-height: 1.35;">
-          Căn cứ mẫu Phiếu đánh giá, chấm điểm năm học 2025–2026 của Trường THPT Sơn Lương, phiếu này giữ cấu trúc 100 điểm gồm: (I) Chính trị tư tưởng, đạo đức lối sống 15 điểm; (II) Tác phong, lề lối làm việc, ý thức tổ chức kỷ luật 15 điểm; (III) Kết quả thực hiện nhiệm vụ 70 điểm. Các nhiệm vụ ở phần III được chi tiết hóa để thuận lợi cho tự đánh giá, đánh giá của tổ chuyên môn và BGH. Các mức điểm KPI chi tiết dưới đây là đề xuất quản trị nội bộ, cần được nhà trường xác nhận trước khi áp dụng chính thức.
+          Căn cứ mẫu Phiếu đánh giá, chấm điểm năm học 2025–2026 của Trường THPT Minh Hòa, phiếu này giữ cấu trúc 100 điểm gồm: (I) Chính trị tư tưởng, đạo đức lối sống 15 điểm; (II) Tác phong, lề lối làm việc, ý thức tổ chức kỷ luật 15 điểm; (III) Kết quả thực hiện nhiệm vụ 70 điểm. Các nhiệm vụ ở phần III được chi tiết hóa để thuận lợi cho tự đánh giá, đánh giá của tổ chuyên môn và BGH. Các mức điểm KPI chi tiết dưới đây là đề xuất quản trị nội bộ, cần được nhà trường xác nhận trước khi áp dụng chính thức.
         </p>
 
         <p class="font-bold uppercase" style="font-size: 11.5pt; margin-bottom: 4pt;">A. NỘI DUNG CHẤM ĐIỂM</p>
@@ -196,7 +196,7 @@ export const exportVcFormToWord = async (form: KpiVcForm): Promise<void> => {
               <th style="text-align: left;">NỘI DUNG ĐÁNH GIÁ</th>
               <th style="width: 40pt;">ĐIỂM TỐI ĐA</th>
               <th style="width: 55pt;">GIÁO VIÊN TỰ CHẤM</th>
-              <th style="width: 55pt;">TTCM ĐÁNH GIÁ</th>
+              <th style="width: 55pt;">TỔ TRƯỞNG ĐÁNH GIÁ</th>
               <th style="width: 55pt;">CBQL ĐÁNH GIÁ</th>
               <th style="width: 65pt;">NHẬN XÉT</th>
             </tr>
@@ -326,7 +326,7 @@ export const exportVcFormToWord = async (form: KpiVcForm): Promise<void> => {
               <td></td>
             </tr>
             <tr style="font-weight: bold;">
-              <td colspan="3" class="font-bold uppercase">TỔNG TTCM ĐÁNH GIÁ</td>
+              <td colspan="3" class="font-bold uppercase">TỔNG TỔ TRƯỞNG ĐÁNH GIÁ</td>
               <td colspan="3" class="text-center font-bold">${form.ttcmTotalScore !== null && form.ttcmTotalScore !== undefined ? `${form.ttcmTotalScore}/100` : '___/100'}</td>
               <td></td>
             </tr>
@@ -555,7 +555,7 @@ export const exportCbqlFormToWord = async (form: KpiCbqlForm): Promise<void> => 
           <tr>
             <td style="width: 45%; text-align: center;">
               <p class="font-bold uppercase" style="font-size: 11pt;">SỞ GD&ĐT TỈNH PHÚ THỌ</p>
-              <p class="font-bold uppercase" style="font-size: 12pt;">TRƯỜNG THPT SƠN LƯƠNG</p>
+              <p class="font-bold uppercase" style="font-size: 12pt;">TRƯỜNG THPT MINH HÒA</p>
               <div style="border-bottom: 1px solid black; width: 100px; margin: 2pt auto;"></div>
             </td>
             <td style="width: 55%; text-align: center;">
@@ -579,7 +579,7 @@ export const exportCbqlFormToWord = async (form: KpiCbqlForm): Promise<void> => 
         <div style="margin-bottom: 12pt; font-size: 13pt;">
           <p><span class="font-bold">Họ và tên người được đánh giá:</span> ${form.evaluateeName}</p>
           <p><span class="font-bold">Chức vụ:</span> ${form.evaluateePosition}</p>
-          <p><span class="font-bold">Đơn vị:</span> ${form.evaluateeDepartmentName || 'Trường THPT Sơn Lương'}</p>
+          <p><span class="font-bold">Đơn vị:</span> ${form.evaluateeDepartmentName || 'Trường THPT Minh Hòa'}</p>
           <p><span class="font-bold">Người đánh giá (Thủ trưởng):</span> ${form.evaluatorName} - ${form.evaluatorPosition}</p>
         </div>
 
@@ -686,7 +686,7 @@ export const exportCbqlFormToWord = async (form: KpiCbqlForm): Promise<void> => 
               <p class="font-bold">${form.evaluateeName}</p>
             </td>
             <td style="width: 50%;">
-              <p class="italic">Sơn Lương, ngày .... tháng .... năm 2026</p>
+              <p class="italic">Minh Hòa, ngày .... tháng .... năm 2026</p>
               <p class="font-bold uppercase">THỦ TRƯỞNG ĐÁNH GIÁ</p>
               <p class="italic" style="font-size: 10pt;">(Ký, ghi rõ họ tên và đóng dấu)</p>
               <br/><br/><br/>

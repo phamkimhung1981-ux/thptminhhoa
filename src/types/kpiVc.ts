@@ -1,4 +1,4 @@
-// Types for Module "ĐÁNH GIÁ KPI GIÁO VIÊN TRƯỜNG THPT SƠN LƯƠNG"
+// Types for Module "ĐÁNH GIÁ KPI GIÁO VIÊN TRƯỜNG THPT MINH HÒA"
 // Căn cứ file: "Mẫu VC giáo viên, nhân viên tự chấm điểm.pdf"
 
 export type KpiVcScoreType = 'input_score' | 'select_level' | 'fixed_score';
@@ -71,7 +71,7 @@ export interface KpiVcScoreItem {
   selfScore: number; // Điểm cá nhân tự chấm
   note?: string; // Ghi chú / minh chứng cá nhân
   
-  // TTCM đánh giá
+  // Tổ trưởng đánh giá
   ttcmScore?: number | null;
   ttcmComment?: string;
   

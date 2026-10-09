@@ -1042,7 +1042,7 @@ export default function Homeroom() {
                 CÔNG TÁC CHỦ NHIỆM & QUẢN LÝ NỀN NẾP
               </h1>
               <p className="text-xs sm:text-sm text-blue-100">
-                Trường THPT Sơn Lương • Hệ thống theo dõi điểm rèn luyện & đánh giá học sinh điện tử
+                Trường THPT Minh Hòa • Hệ thống theo dõi điểm rèn luyện & đánh giá học sinh điện tử
               </p>
             </div>
           </div>

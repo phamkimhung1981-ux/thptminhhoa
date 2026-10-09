@@ -289,7 +289,7 @@ export async function exportWeeklyTasksToWord(options: ExportWordOptions) {
                         alignment: AlignmentType.CENTER,
                         children: [
                           new TextRun({ text: 'SỞ GD&ĐT PHÚ THỌ\n', size: 20 }),
-                          new TextRun({ text: 'TRƯỜNG THPT SƠN LƯƠNG', bold: true, size: 20 })
+                          new TextRun({ text: 'TRƯỜNG THPT MINH HÒA', bold: true, size: 20 })
                         ]
                       })
                     ]
@@ -390,7 +390,7 @@ export async function exportWeeklyTasksToWord(options: ExportWordOptions) {
                       new Paragraph({
                         alignment: AlignmentType.CENTER,
                         children: [
-                          new TextRun({ text: `Sơn Lương, ngày ${new Date().getDate()} tháng ${new Date().getMonth() + 1} năm ${new Date().getFullYear()}\n`, italics: true, size: 18 }),
+                          new TextRun({ text: `Minh Hòa, ngày ${new Date().getDate()} tháng ${new Date().getMonth() + 1} năm ${new Date().getFullYear()}\n`, italics: true, size: 18 }),
                           new TextRun({ text: 'HIỆU TRƯỞNG / BAN GIÁM HIỆU\n', bold: true, size: 20 }),
                           new TextRun({ text: '(Ký và đóng dấu)', italics: true, size: 18 })
                         ]
@@ -407,6 +407,6 @@ export async function exportWeeklyTasksToWord(options: ExportWordOptions) {
   });
 
   const blob = await Packer.toBlob(doc);
-  const fileName = `Bang_Giao_Viec_Tuan_${weekNumber}_THPT_Son_Luong.docx`;
+  const fileName = `Bang_Giao_Viec_Tuan_${weekNumber}_THPT_Minh_Hoa.docx`;
   downloadBlob(blob, fileName);
 }

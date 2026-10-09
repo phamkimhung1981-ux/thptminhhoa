@@ -232,7 +232,7 @@ export default function KpiCbql() {
           <div className="flex-1 min-w-0 space-y-1.5">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200 text-xs font-bold uppercase tracking-wider">
-                <Award size={13} /> TRƯỜNG THPT SƠN LƯƠNG
+                <Award size={13} /> TRƯỜNG THPT MINH HÒA
               </span>
             </div>
 
@@ -615,7 +615,7 @@ export default function KpiCbql() {
                   Báo Cáo Tổng Hợp Kết Quả Đánh Giá KPI CBQL
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Bảng tổng hợp xếp loại và đối chiếu điểm của toàn thể Cán bộ Quản lý THPT Sơn Lương
+                  Bảng tổng hợp xếp loại và đối chiếu điểm của toàn thể Cán bộ Quản lý THPT Minh Hòa
                 </p>
               </div>
 

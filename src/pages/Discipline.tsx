@@ -23,6 +23,7 @@ export default function Discipline() {
     teachers, 
     departments, 
     addDisciplineRecord, 
+    addDisciplineRecords,
     deleteDisciplineRecord,
     deleteDisciplineRecords 
   } = useAppContext();
@@ -157,6 +158,7 @@ export default function Discipline() {
   // Warning modal khi lưu thiếu nhận xét
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
   const [uncommentedCount, setUncommentedCount] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Form state & Hộp kiểm danh sách CBGVNV được đánh giá
   const [selectionMode, setSelectionMode] = useState<'batch' | 'single'>('batch');
@@ -587,57 +589,70 @@ export default function Discipline() {
   // Thực hiện lưu dữ liệu vào Firestore
   async function executeSave() {
     setIsWarningModalOpen(false);
+    if (isSaving) return;
 
-    // Khi sửa: xóa các record cũ của lần đánh giá này rồi ghi lại để đảm bảo tính toàn vẹn
-    if (editingSession && editingSession.recordIds && editingSession.recordIds.length > 0) {
-      await deleteDisciplineRecords(editingSession.recordIds);
-    }
+    setIsSaving(true);
+    try {
+      // Khi sửa: xóa các record cũ của lần đánh giá này rồi ghi lại để đảm bảo tính toàn vẹn
+      if (editingSession && editingSession.recordIds && editingSession.recordIds.length > 0) {
+        await deleteDisciplineRecords(editingSession.recordIds);
+      }
 
-    const targetTeacherIds = (editingSession || selectionMode === 'single')
-      ? [formData.teacherId]
-      : selectedTeacherIds;
+      const targetTeacherIds = (editingSession || selectionMode === 'single')
+        ? [formData.teacherId]
+        : selectedTeacherIds;
 
-    targetTeacherIds.forEach((tId, tIdx) => {
-      const teacher = getTeacher(tId);
-      const targetDeptId = getTeacherDeptId(teacher) || ttcmDeptId || displayDepartments[0]?.id || 'd_van_phong';
+      const recordsToSave: DisciplineRecord[] = [];
 
-      // Tạo các bản ghi đánh giá tiêu chí cho cá nhân giáo viên đó
-      formCriteriaList.forEach((crit, index) => {
-        const key = crit.id;
-        const ttcmComm = formData.ttcmComments[key] || '';
-        const bghComm = formData.bghComments[key] || '';
+      targetTeacherIds.forEach((tId, tIdx) => {
+        const teacher = getTeacher(tId);
+        const targetDeptId = getTeacherDeptId(teacher) || ttcmDeptId || displayDepartments[0]?.id || 'd_van_phong';
 
-        // Tái sử dụng level lịch sử nếu có
-        let legacyLevel: string | undefined = undefined;
-        if (editingSession) {
-          const oldRec = editingSession.evaluations.find(e => (e.criterionId === crit.id || e.criteria === crit.name));
-          if (oldRec?.level) legacyLevel = oldRec.level;
-        }
+        // Tạo các bản ghi đánh giá tiêu chí cho cá nhân giáo viên đó
+        formCriteriaList.forEach((crit, index) => {
+          const key = crit.id;
+          const oldRec = editingSession?.evaluations.find(e => (e.criterionId === crit.id || e.criteria === crit.name));
 
-        const newRecord: DisciplineRecord = {
-          id: `dr${Date.now()}_${tIdx}_${index}_${Math.random().toString(36).substring(2, 7)}`,
-          teacherId: tId,
-          departmentId: targetDeptId,
-          date: formData.date,
-          criteria: crit.name,
-          criterionId: crit.id,
-          level: legacyLevel,
-          inspectorId: authUser?.id || (isBgh ? 'admin' : 'ttcm'),
-          evaluatorRole: effectiveRole,
-          ttcmComment: ttcmComm.trim(),
-          bghComment: bghComm.trim(),
-          ttcmGeneralNote: formData.ttcmGeneralNote.trim(),
-          bghGeneralNote: formData.bghGeneralNote.trim(),
-          note: (isBgh ? formData.bghGeneralNote.trim() : formData.ttcmGeneralNote.trim()) || ''
-        };
+          const ttcmComm = formData.ttcmComments[key] ?? formData.ttcmComments[crit.name] ?? oldRec?.ttcmComment ?? '';
+          const bghComm = formData.bghComments[key] ?? formData.bghComments[crit.name] ?? oldRec?.bghComment ?? '';
 
-        addDisciplineRecord(newRecord);
+          // Tái sử dụng level lịch sử nếu có
+          let legacyLevel: string | undefined = oldRec?.level;
+
+          const newRecord: DisciplineRecord = {
+            id: `dr${Date.now()}_${tIdx}_${index}_${Math.random().toString(36).substring(2, 7)}`,
+            teacherId: tId,
+            departmentId: targetDeptId,
+            date: formData.date,
+            criteria: crit.name,
+            criterionId: crit.id,
+            level: legacyLevel,
+            inspectorId: authUser?.id || (isBgh ? 'admin' : 'ttcm'),
+            evaluatorRole: effectiveRole,
+            ttcmComment: ttcmComm.trim(),
+            bghComment: bghComm.trim(),
+            ttcmGeneralNote: formData.ttcmGeneralNote.trim(),
+            bghGeneralNote: formData.bghGeneralNote.trim(),
+            note: (isBgh ? formData.bghGeneralNote.trim() : formData.ttcmGeneralNote.trim()) || ''
+          };
+
+          recordsToSave.push(newRecord);
+        });
       });
-    });
 
-    setToastMessage(editingSession ? 'Đã cập nhật phiếu đánh giá thành công.' : 'Đã lưu phiếu đánh giá nề nếp thành công.');
-    setIsModalOpen(false);
-    setEditingSession(null);
+      if (recordsToSave.length > 0) {
+        await addDisciplineRecords(recordsToSave);
+      }
+
+      setToastMessage(editingSession ? 'Đã cập nhật phiếu đánh giá thành công.' : 'Đã lưu phiếu đánh giá nề nếp thành công.');
+      setIsModalOpen(false);
+      setEditingSession(null);
+    } catch (err: any) {
+      console.error('Lỗi khi lưu phiếu đánh giá nề nếp:', err);
+      alert('Lỗi khi lưu dữ liệu lên máy chủ: ' + (err.message || 'Vui lòng thử lại.'));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Thống kê giáo viên đã/chưa được nhận xét
@@ -1632,8 +1647,10 @@ export default function Discipline() {
               <button 
                 type="submit" 
                 form="discipline-form" 
-                className="px-5 py-2 text-sm font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors shadow-sm"
+                disabled={isSaving}
+                className="px-5 py-2 text-sm font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2"
               >
+                {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
                 {editingSession ? 'Cập nhật phiếu' : 'Lưu phiếu'}
               </button>
             </div>

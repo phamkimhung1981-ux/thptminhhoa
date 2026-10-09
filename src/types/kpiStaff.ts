@@ -1,4 +1,4 @@
-// Types for Module "PHIẾU ĐÁNH GIÁ, CHẤM ĐIỂM KPI NHÂN VIÊN - TRƯỜNG THPT SƠN LƯƠNG"
+// Types for Module "PHIẾU ĐÁNH GIÁ, CHẤM ĐIỂM KPI NHÂN VIÊN - TRƯỜNG THPT MINH HÒA"
 // Cấu trúc điểm: 30 điểm KPI chung + 70 điểm KPI vị trí việc làm = 100 điểm.
 
 export type StaffPositionKey = 
@@ -56,7 +56,7 @@ export interface KpiStaffScoreItem {
   
   // Scoring values
   selfScore: number; // Cá nhân tự chấm
-  ttcmScore?: number | null; // Tổ trưởng chuyên môn chấm
+  ttcmScore?: number | null; // Tổ trưởng đánh giá
   ttcmComment?: string;
   isNA?: boolean; // Tùy chọn N/A nếu không giao
   evidence?: string; // Minh chứng / ghi chú
@@ -76,6 +76,8 @@ export interface KpiStaffPeriod {
   endDate: string;
   status: 'active' | 'locked' | 'draft';
   description?: string;
+  periodType?: 'month' | 'term' | 'year' | string;
+  periodValue?: string;
 }
 
 export type KpiStaffFormStatus = 'draft' | 'self_evaluated' | 'submitted' | 'completed' | 'locked';

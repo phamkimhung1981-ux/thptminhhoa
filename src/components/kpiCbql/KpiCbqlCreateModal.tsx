@@ -55,7 +55,7 @@ export default function KpiCbqlCreateModal({
   // All available personnel including active admin user if needed
   const allSelectableTeachers = useMemo(() => {
     let list = [...teachers];
-    if (user && (user.role === 'BGH' || user.id === 'admin') && !list.some(t => t.id === user.id)) {
+    if (user && (user.role === 'BGH' || user.id === 'admin') && !list.some(t => t.id === user.id) && !isExcludedCbqlEvaluator(user as any)) {
       list.unshift({
         id: user.id,
         name: user.name || 'Ban Giám hiệu (Admin)',
@@ -66,7 +66,7 @@ export default function KpiCbqlCreateModal({
         code: 'BGH_ADMIN',
         subject: 'Quản lý',
         phone: '',
-        email: '',
+        email: user.email || '',
         joinDate: '2020-09-01',
         degree: 'Thạc sĩ Quản lý Giáo dục',
         status: 'Đang công tác'
@@ -447,7 +447,9 @@ export default function KpiCbqlCreateModal({
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
             >
               <option value="">-- Chọn cán bộ quản lý đánh giá --</option>
-              {eligibleEvaluators.map(t => (
+              {eligibleEvaluators
+                .filter(t => !isExcludedCbqlEvaluator(t))
+                .map(t => (
                 <option key={t.id} value={t.id}>
                   [{t.role || 'BGH'}] {t.name} — {t.position || 'Hiệu trưởng / Thủ trưởng đơn vị'}
                 </option>

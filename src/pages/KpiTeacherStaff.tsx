@@ -525,7 +525,7 @@ export default function KpiTeacherStaff() {
             <Award size={20} className="text-blue-300 shrink-0" />
             ĐÁNH GIÁ KPI GIÁO VIÊN
           </h1>
-          <span className="text-xs text-blue-200 font-medium">Trường THPT Sơn Lương</span>
+          <span className="text-xs text-blue-200 font-medium">Trường THPT Minh Hòa</span>
         </div>
 
         {/* Thanh chức năng ngang */}
@@ -910,7 +910,7 @@ export default function KpiTeacherStaff() {
                   Điểm tự đánh giá
                 </th>
                 <th className="p-3.5 text-center w-36 bg-purple-50/70 text-purple-900 font-bold">
-                  Điểm TTCM đánh giá
+                  Điểm Tổ trưởng đánh giá
                 </th>
                 <th className="p-3.5 text-center w-36 bg-indigo-50/70 text-indigo-900 font-bold">
                   Điểm BGH đánh giá

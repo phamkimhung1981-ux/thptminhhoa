@@ -13,9 +13,9 @@ import { db } from '../lib/firebase';
 import { OfficialDocument } from '../types/document';
 
 const DOCUMENTS_COLLECTION = 'official_documents';
-const LOCAL_STORAGE_KEY = 'thpt_son_luong_official_documents_v1';
+const LOCAL_STORAGE_KEY = 'thpt_minh_hoa_official_documents_v1';
 
-// Seed sample documents for THPT Sơn Lương
+// Seed sample documents for THPT Minh Hòa
 const SAMPLE_DOCUMENTS: OfficialDocument[] = [
   {
     id: 'doc-001',
@@ -40,16 +40,16 @@ const SAMPLE_DOCUMENTS: OfficialDocument[] = [
   },
   {
     id: 'doc-002',
-    documentNumber: '48/KH-THPTSL',
+    documentNumber: '48/KH-THPTMH',
     title: 'Kế hoạch triển khai nhiệm vụ năm học 2026 - 2027 và phong trào thi đua xây dựng Trường học Hạnh phúc',
     category: 'internal',
     documentType: 'Kế hoạch',
-    issuingAuthority: 'Trường THPT Sơn Lương',
+    issuingAuthority: 'Trường THPT Minh Hòa',
     issueDate: '2026-09-10',
     urgency: 'Thường',
     assignedDepartmentIds: ['toan', 'van', 'ngoai-ngu', 'su-dia'],
-    assignedDepartmentNames: ['Tổ Toán - Tin', 'Tổ Ngữ Văn', 'Tổ Ngoại Ngữ', 'Tổ Sử - Địa - GDKTPL'],
-    signerName: 'Nguyễn Quang Sáng',
+    assignedDepartmentNames: ['Tổ Toán - Công Nghệ', 'Tổ Văn - Sử - Địa- GDKT', 'Tổ Lý - Hóa- Sinh', 'Tổ Ngoại ngữ - Tin học– GDTC- GDQP&AN'],
+    signerName: 'Trịnh Việt Phương',
     signerPosition: 'Hiệu trưởng',
     fileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
     fileName: '48_KH_Nhiem_vu_nam_hoc_2026_2027.pdf',
@@ -60,16 +60,16 @@ const SAMPLE_DOCUMENTS: OfficialDocument[] = [
   },
   {
     id: 'doc-003',
-    documentNumber: '88/QC-THPTSL',
+    documentNumber: '88/QC-THPTMH',
     title: 'Quy chế chuyên môn, đánh giá xếp loại học sinh và thực hiện nền nếp công vụ năm học 2026 - 2027',
     category: 'internal',
     documentType: 'Quy chế',
-    issuingAuthority: 'Trường THPT Sơn Lương',
+    issuingAuthority: 'Trường THPT Minh Hòa',
     issueDate: '2026-09-12',
     urgency: 'Thường',
     assignedDepartmentIds: ['all'],
     assignedDepartmentNames: ['Toàn thể CBGVNV'],
-    signerName: 'Nguyễn Quang Sáng',
+    signerName: 'Trịnh Việt Phương',
     signerPosition: 'Hiệu trưởng',
     fileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
     fileName: '88_Quy_che_chuyen_mon_2026_2027.pdf',
@@ -80,16 +80,16 @@ const SAMPLE_DOCUMENTS: OfficialDocument[] = [
   },
   {
     id: 'doc-004',
-    documentNumber: '156/CV-THPTSL',
+    documentNumber: '156/CV-THPTMH',
     title: 'Báo cáo công tác chuẩn bị cơ sở vật chất, thiết bị dạy học và kiểm định chất lượng đầu năm học',
     category: 'outgoing',
     documentType: 'Công văn',
-    issuingAuthority: 'Trường THPT Sơn Lương',
+    issuingAuthority: 'Trường THPT Minh Hòa',
     issueDate: '2026-09-15',
     urgency: 'Thường',
     assignedDepartmentIds: ['hanh-chinh'],
     assignedDepartmentNames: ['Sở GD&ĐT', 'Tổ Văn phòng'],
-    signerName: 'Nguyễn Quang Sáng',
+    signerName: 'Trịnh Việt Phương',
     signerPosition: 'Hiệu trưởng',
     fileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
     fileName: '156_CV_Bao_cao_CSVC_dau_nam.pdf',

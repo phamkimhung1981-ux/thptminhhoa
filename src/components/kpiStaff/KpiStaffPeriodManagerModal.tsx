@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { KpiStaffPeriod } from '../../types/kpiStaff';
-import { Calendar, Plus, Lock, Unlock, Edit2, Trash2, Check, X, ShieldAlert, AlertCircle } from 'lucide-react';
+import { DEFAULT_STAFF_PERIODS } from '../../lib/kpiStaffData';
+import { Calendar, Plus, Lock, Unlock, Edit2, Trash2, Check, X, ShieldAlert, AlertCircle, RotateCcw } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
@@ -159,14 +160,28 @@ export default function KpiStaffPeriodManagerModal({
               </div>
             </div>
           ) : (
-            <div className="flex justify-between items-center">
+            <div className="flex flex-wrap justify-between items-center gap-2">
               <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Danh sách kỳ đánh giá ({periods.length})</span>
-              <button
-                onClick={handleStartCreate}
-                className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5"
-              >
-                <Plus size={16} /> Thêm kỳ đánh giá mới
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm('Khôi phục/Bổ sung đầy đủ 15 kỳ đánh giá chuẩn (Kỳ I, Kỳ II, Cả năm và 12 tháng năm học 2026-2027)?')) {
+                      DEFAULT_STAFF_PERIODS.forEach(p => onSavePeriod(p));
+                    }
+                  }}
+                  className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                  title="Khôi phục hoặc bổ sung đầy đủ các kỳ Kỳ I, Kỳ II, Cả năm và 12 tháng năm học 2026-2027"
+                >
+                  <RotateCcw size={14} /> Khôi phục 15 kỳ chuẩn (2026-2027)
+                </button>
+                <button
+                  onClick={handleStartCreate}
+                  className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus size={16} /> Thêm kỳ mới
+                </button>
+              </div>
             </div>
           )}
 

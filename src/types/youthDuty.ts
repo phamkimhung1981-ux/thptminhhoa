@@ -29,10 +29,10 @@ export interface YouthDutyTaskConfig {
 
 export interface YouthDutyMetadata {
   academicYear: string;
-  organizationName: string; // "ĐOÀN TRƯỜNG THPT SƠN LƯƠNG"
-  parentOrganizationName: string; // "ĐOÀN XÃ SƠN LƯƠNG"
+  organizationName: string; // "ĐOÀN TRƯỜNG THPT MINH HÒA"
+  parentOrganizationName: string; // "ĐOÀN XÃ MINH HÒA"
   unionTitle: string; // "ĐOÀN TNCS HỒ CHÍ MINH"
-  locationDate: string; // "Sơn Lương, ngày 17 tháng 09 năm 2026"
+  locationDate: string; // "Minh Hòa, ngày 17 tháng 09 năm 2026"
   secretaryName: string; // "Phan Thị Lan Phương"
   secretaryTitle: string; // "Bí Thư"
   partyCommitteeTitle: string; // "Xác nhận của Ban Chi Ủy"

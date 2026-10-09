@@ -876,7 +876,7 @@ export function resolveCbqlTeacherPosition(t: Teacher | null | undefined, depart
  * XÁC ĐỊNH ĐƠN VỊ CÔNG TÁC CỦA CBQL
  */
 export function resolveCbqlTeacherDepartmentName(t: Teacher | null | undefined, departments?: Department[]): string {
-  if (!t) return 'Trường THPT Sơn Lương';
+  if (!t) return 'Trường THPT Minh Hòa';
   if (departments && departments.length > 0) {
     const matchedDept = departments.find(d => d.id === t.departmentId || d.headId === t.id);
     if (matchedDept) return matchedDept.name;
@@ -884,7 +884,7 @@ export function resolveCbqlTeacherDepartmentName(t: Teacher | null | undefined, 
   if (t.departmentName && t.departmentName.trim().length > 0) {
     return t.departmentName.trim();
   }
-  return 'Trường THPT Sơn Lương';
+  return 'Trường THPT Minh Hòa';
 }
 
 /**
@@ -903,7 +903,7 @@ export function getCbqlTeachers(teachers: Teacher[], departments?: Department[],
       username: currentUser.username || 'admin',
       role: 'BGH',
       position: currentUser.position || 'Hiệu trưởng / Ban Giám hiệu',
-      departmentName: 'Trường THPT Sơn Lương',
+      departmentName: 'Trường THPT Minh Hòa',
       code: 'BGH_ADMIN',
       subject: 'Quản lý',
       phone: '',

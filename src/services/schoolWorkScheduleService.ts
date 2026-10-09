@@ -1,16 +1,20 @@
 import { collection, doc, getDocs, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, cleanFirestoreData } from '../lib/firebase';
 import { SchoolWorkSchedule, SchoolWorkDay, SchoolWorkItem } from '../types/schoolWorkSchedule';
 import { getWeekInfoByNumber } from '../utils/schoolWeekUtils';
+import { User } from '../types';
+import { checkCanDeleteScheduleTask, checkCanDeleteEntireWeek } from '../utils/schedulePermissions';
+import { scheduleAuditService } from './scheduleAuditService';
 
 const COLLECTION_NAME = 'schoolWorkSchedules';
-const STORAGE_KEY_PREFIX = 'thpt_son_luong_school_work_schedule_';
+const STORAGE_KEY_PREFIX = 'thpt_minh_hoa_school_work_schedule_';
 
 export const DEFAULT_DEPARTMENTS_CONFIG = [
   { id: 'all', name: 'TOÀN TRƯỜNG', label: 'Toàn trường' },
-  { id: 'd_toan_ly_tin_cn', name: 'Tổ Toán - Lý - Tin - Công nghệ', label: 'Tổ Toán - Lý - Tin - CN' },
-  { id: 'd_hoa_ly_sinh_gdqpan_nn', name: 'Tổ Hóa - Sinh - GDQPAN - Ngoại ngữ', label: 'Tổ Hóa - Sinh - GDQPAN - NN' },
-  { id: 'd_van_su_dia_gdkt_pl_an', name: 'Tổ Văn - Sử - Địa - GDKT&PL - Âm nhạc', label: 'Tổ Văn - Sử - Địa - GDKT&PL - AN' },
+  { id: 'd_toan_cong_nghe', name: 'Tổ Toán - Công Nghệ', label: 'Tổ Toán - Công Nghệ' },
+  { id: 'd_van_su_dia_gdkt', name: 'Tổ Văn - Sử - Địa- GDKT', label: 'Tổ Văn - Sử - Địa- GDKT' },
+  { id: 'd_ly_hoa_sinh', name: 'Tổ Lý - Hóa- Sinh', label: 'Tổ Lý - Hóa- Sinh' },
+  { id: 'd_ngoai_ngu_tin_hoc_gdtc_gdqpan', name: 'Tổ Ngoại ngữ - Tin học– GDTC- GDQP&AN', label: 'Tổ Ngoại ngữ - Tin học– GDTC- GDQP&AN' },
   { id: 'd_van_phong', name: 'Tổ Văn phòng', label: 'Tổ Văn phòng' }
 ];
 
@@ -65,7 +69,7 @@ export function generateSampleSchoolWorkSchedule(
 ): SchoolWorkSchedule {
   const base = generateEmptySchoolWorkSchedule(weekNumber, academicYear, departmentId);
 
-  // Seed Tuần 3 standard THPT Sơn Lương data
+  // Seed Tuần 3 standard THPT Minh Hòa data
   if (weekNumber === 3) {
     // Thứ 2
     base.days[0].morning_tasks = [
@@ -281,9 +285,9 @@ export const schoolWorkScheduleService = {
     // Save to Firestore
     try {
       const docRef = doc(db, COLLECTION_NAME, docId);
-      await setDoc(docRef, JSON.parse(JSON.stringify(schedule)), { merge: true });
+      await setDoc(docRef, cleanFirestoreData(schedule), { merge: true });
     } catch (e) {
-      console.warn('Firestore saveSchedule error, data saved locally:', e);
+      console.warn('Firestore saveSchedule warning (saved locally):', e);
     }
   },
 
@@ -321,6 +325,208 @@ export const schoolWorkScheduleService = {
 
     await this.saveSchedule(updated);
     return updated;
+  },
+
+  /**
+   * Xóa một công việc cụ thể khỏi lịch giao việc
+   */
+  async deleteTaskItem(
+    schedule: SchoolWorkSchedule,
+    dayId: string,
+    timeSlot: 'morning' | 'afternoon',
+    itemId: string,
+    user: User | null
+  ): Promise<{ updatedSchedule: SchoolWorkSchedule; deletedItem: SchoolWorkItem }> {
+    // 1. Tìm thông tin công việc để kiểm tra đánh giá và quyền
+    const targetDay = schedule.days.find(d => d.id === dayId);
+    if (!targetDay) throw new Error('Không tìm thấy ngày của công việc cần xóa.');
+
+    const tasksList = timeSlot === 'morning' ? targetDay.morning_tasks : targetDay.afternoon_tasks;
+    const taskToDelete = tasksList.find(t => t.id === itemId);
+    if (!taskToDelete) throw new Error('Không tìm thấy công việc cần xóa với ID: ' + itemId);
+
+    const hasEvaluation = Boolean(
+      (taskToDelete.status && taskToDelete.status !== 'Chưa thực hiện') ||
+      taskToDelete.leaderInCharge ||
+      targetDay.duty_evaluator
+    );
+
+    const scope = schedule.department_id === 'all' ? 'all' : 'department';
+
+    // 2. Kiểm tra phân quyền xóa
+    const perm = checkCanDeleteScheduleTask(user, scope, schedule.department_id, hasEvaluation);
+    if (!perm.canDelete) {
+      throw new Error(`403 Forbidden: ${perm.reason || 'Bạn không có quyền xóa công việc này.'}`);
+    }
+
+    // 3. Tiến hành xóa khỏi danh sách
+    const newDays = schedule.days.map(d => {
+      if (d.id !== dayId) return d;
+      return {
+        ...d,
+        [timeSlot === 'morning' ? 'morning_tasks' : 'afternoon_tasks']: (
+          timeSlot === 'morning' ? d.morning_tasks : d.afternoon_tasks
+        ).filter(t => t.id !== itemId)
+      };
+    });
+
+    const updatedSchedule: SchoolWorkSchedule = {
+      ...schedule,
+      days: newDays,
+      updated_at: new Date().toISOString()
+    };
+
+    // 4. Lưu vào Firestore và localStorage
+    await this.saveSchedule(updatedSchedule);
+
+    // 5. Ghi Audit Log
+    try {
+      await scheduleAuditService.logDeletion({
+        action: 'delete_single',
+        actionLabel: `Xóa 1 công việc (${timeSlot === 'morning' ? 'Sáng' : 'Chiều'} ${targetDay.day_of_week})`,
+        userName: user?.name || 'Chưa xác định',
+        userAccount: user?.username || user?.id || 'unknown',
+        userRole: user?.role || user?.position || 'N/A',
+        scheduleId: schedule.id,
+        taskId: itemId,
+        taskContent: taskToDelete.content,
+        taskDate: targetDay.date_str || targetDay.date,
+        department: schedule.department_name,
+        scope: scope === 'all' ? 'Toàn trường' : 'Tổ chuyên môn',
+        hasEvaluation,
+        result: 'Thành công'
+      });
+    } catch (logErr) {
+      console.warn('Lỗi ghi audit log:', logErr);
+    }
+
+    return { updatedSchedule, deletedItem: taskToDelete };
+  },
+
+  /**
+   * Xóa hàng loạt nhiều công việc đã chọn
+   */
+  async deleteBatchTaskItems(
+    schedule: SchoolWorkSchedule,
+    itemsToDelete: { dayId: string; timeSlot: 'morning' | 'afternoon'; itemId: string }[],
+    user: User | null
+  ): Promise<{ updatedSchedule: SchoolWorkSchedule; deletedCount: number }> {
+    if (!itemsToDelete || itemsToDelete.length === 0) {
+      return { updatedSchedule: schedule, deletedCount: 0 };
+    }
+
+    const scope = schedule.department_id === 'all' ? 'all' : 'department';
+    const perm = checkCanDeleteScheduleTask(user, scope, schedule.department_id, false);
+    if (!perm.canDelete) {
+      throw new Error(`403 Forbidden: ${perm.reason || 'Bạn không có quyền xóa các công việc này.'}`);
+    }
+
+    const itemIdsSet = new Set(itemsToDelete.map(i => i.itemId));
+    let deletedCount = 0;
+    const deletedContents: string[] = [];
+
+    const newDays = schedule.days.map(day => {
+      const morningTasks = day.morning_tasks.filter(t => {
+        if (itemIdsSet.has(t.id)) {
+          deletedCount++;
+          deletedContents.push(t.content);
+          return false;
+        }
+        return true;
+      });
+
+      const afternoonTasks = day.afternoon_tasks.filter(t => {
+        if (itemIdsSet.has(t.id)) {
+          deletedCount++;
+          deletedContents.push(t.content);
+          return false;
+        }
+        return true;
+      });
+
+      return {
+        ...day,
+        morning_tasks: morningTasks,
+        afternoon_tasks: afternoonTasks
+      };
+    });
+
+    const updatedSchedule: SchoolWorkSchedule = {
+      ...schedule,
+      days: newDays,
+      updated_at: new Date().toISOString()
+    };
+
+    await this.saveSchedule(updatedSchedule);
+
+    // Ghi Audit Log
+    try {
+      await scheduleAuditService.logDeletion({
+        action: 'delete_batch',
+        actionLabel: `Xóa hàng loạt ${deletedCount} công việc`,
+        userName: user?.name || 'Chưa xác định',
+        userAccount: user?.username || user?.id || 'unknown',
+        userRole: user?.role || user?.position || 'N/A',
+        scheduleId: schedule.id,
+        taskContent: deletedContents.slice(0, 3).join('; ') + (deletedContents.length > 3 ? '...' : ''),
+        department: schedule.department_name,
+        scope: scope === 'all' ? 'Toàn trường' : 'Tổ chuyên môn',
+        hasEvaluation: false,
+        result: 'Thành công'
+      });
+    } catch (e) {
+      console.warn('Lỗi ghi audit log:', e);
+    }
+
+    return { updatedSchedule, deletedCount };
+  },
+
+  /**
+   * Xóa toàn bộ lịch của cả một tuần (chỉ Admin và Hiệu trưởng)
+   */
+  async deleteEntireWeek(
+    schedule: SchoolWorkSchedule,
+    user: User | null
+  ): Promise<SchoolWorkSchedule> {
+    const perm = checkCanDeleteEntireWeek(user);
+    if (!perm.canDelete) {
+      throw new Error(`403 Forbidden: ${perm.reason || 'Chỉ Quản trị viên hoặc Hiệu trưởng mới được xóa cả tuần.'}`);
+    }
+
+    const newDays = schedule.days.map(d => ({
+      ...d,
+      morning_tasks: [],
+      afternoon_tasks: [],
+      duty_evaluator: ''
+    }));
+
+    const updatedSchedule: SchoolWorkSchedule = {
+      ...schedule,
+      days: newDays,
+      updated_at: new Date().toISOString()
+    };
+
+    await this.saveSchedule(updatedSchedule);
+
+    try {
+      await scheduleAuditService.logDeletion({
+        action: 'delete_week',
+        actionLabel: `Xóa toàn bộ lịch Tuần ${schedule.week_number}`,
+        userName: user?.name || 'Chưa xác định',
+        userAccount: user?.username || user?.id || 'unknown',
+        userRole: user?.role || user?.position || 'N/A',
+        scheduleId: schedule.id,
+        taskContent: `Xóa toàn bộ nội dung công việc Tuần ${schedule.week_number} (${schedule.department_name})`,
+        department: schedule.department_name,
+        scope: schedule.department_id === 'all' ? 'Toàn trường' : 'Tổ chuyên môn',
+        hasEvaluation: true,
+        result: 'Thành công'
+      });
+    } catch (e) {
+      console.warn('Lỗi ghi audit log:', e);
+    }
+
+    return updatedSchedule;
   },
 
   async getAllSchedules(): Promise<SchoolWorkSchedule[]> {

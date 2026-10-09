@@ -189,7 +189,7 @@ export default function Documents() {
           title: formData.title || '',
           category: formData.category || 'incoming',
           documentType: formData.documentType || 'Công văn',
-          issuingAuthority: formData.issuingAuthority || 'Trường THPT Sơn Lương',
+          issuingAuthority: formData.issuingAuthority || 'Trường THPT Minh Hòa',
           issueDate: formData.issueDate || new Date().toISOString().split('T')[0],
           receivedDate: formData.receivedDate,
           urgency: formData.urgency || 'Thường',
@@ -317,7 +317,7 @@ export default function Documents() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-extrabold text-slate-800 uppercase tracking-wide">Quản lý Văn bản & Công văn</h1>
-              <span className="px-2.5 py-0.5 text-xs font-bold bg-blue-100 text-blue-800 rounded-full border border-blue-200">THPT Sơn Lương</span>
+              <span className="px-2.5 py-0.5 text-xs font-bold bg-blue-100 text-blue-800 rounded-full border border-blue-200">THPT Minh Hòa</span>
             </div>
             <p className="text-sm font-medium text-slate-500 mt-0.5">Lưu trữ, tra cứu và theo dõi xử lý công văn đến, công văn đi và văn bản chỉ đạo nội bộ</p>
           </div>
@@ -686,7 +686,7 @@ export default function Documents() {
                     type="text"
                     value={formData.issuingAuthority || ''}
                     onChange={(e) => setFormData({ ...formData, issuingAuthority: e.target.value })}
-                    placeholder="VD: Sở GD&ĐT tỉnh / Trường THPT Sơn Lương"
+                    placeholder="VD: Sở GD&ĐT tỉnh / Trường THPT Minh Hòa"
                     className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     required
                   />

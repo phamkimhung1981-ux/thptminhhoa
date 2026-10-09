@@ -259,7 +259,7 @@ export type EvaluationPeriodScopeType = 'all' | 'month' | 'week' | 'year';
 
 export interface EvaluationRatingConfig {
   id: string;
-  school_id: string; // default "thpt_son_luong"
+  school_id: string; // default "thpt_minh_hoa"
   name: string;
   school_year: string; // e.g. "2026–2027"
   evaluation_period_type: EvaluationPeriodScopeType; // 'all' | 'month' | 'week' | 'year'

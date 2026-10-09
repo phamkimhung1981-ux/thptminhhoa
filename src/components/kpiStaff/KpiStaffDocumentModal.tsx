@@ -147,11 +147,24 @@ export default function KpiStaffDocumentModal({
                 onChange={e => setTargetPeriodId(e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
               >
-                {periods.map(p => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} - Năm học {p.academicYear}
-                  </option>
-                ))}
+                <optgroup label="📋 Tổng kết (Học kỳ & Cả năm)">
+                  {periods
+                    .filter(p => p.periodType === 'term' || p.periodType === 'year')
+                    .map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} - Năm học {p.academicYear}
+                      </option>
+                    ))}
+                </optgroup>
+                <optgroup label="📅 Đánh giá theo tháng (Năm học 2026-2027)">
+                  {periods
+                    .filter(p => p.periodType === 'month' || (!p.periodType && !p.name.includes('năm') && !p.name.includes('kỳ')))
+                    .map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} - Năm học {p.academicYear}
+                      </option>
+                    ))}
+                </optgroup>
               </select>
             </div>
 

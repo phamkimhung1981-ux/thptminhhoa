@@ -228,23 +228,173 @@ export const POSITION_CONFIGS: Record<StaffPositionKey, KpiStaffPositionConfig> 
 };
 
 export const DEFAULT_STAFF_PERIODS: KpiStaffPeriod[] = [
-  {
-    id: 'period_staff_2026_2027',
-    name: 'Năm học 2026–2027',
-    academicYear: '2026–2027',
-    startDate: '2026-09-01',
-    endDate: '2027-05-31',
-    status: 'active',
-    description: 'Đánh giá, chấm điểm KPI Nhân viên THPT Sơn Lương năm học 2026–2027 (Khung 30đ + 70đ)'
-  },
+  // 1. CÁC KỲ TỔNG HỢP (Kỳ I, Kỳ II, Cả năm)
   {
     id: 'period_staff_2026_hk1',
-    name: 'Học kỳ I (2026–2027)',
-    academicYear: '2026–2027',
+    name: 'Kỳ I (2026-2027)',
+    academicYear: '2026-2027',
+    periodType: 'term',
+    periodValue: 'HK1',
     startDate: '2026-09-01',
     endDate: '2027-01-15',
     status: 'active',
-    description: 'Đánh giá KPI Nhân viên Học kỳ I năm học 2026–2027'
+    description: 'Đánh giá KPI Nhân viên Kỳ I năm học 2026-2027'
+  },
+  {
+    id: 'period_staff_2026_hk2',
+    name: 'Kỳ II (2026-2027)',
+    academicYear: '2026-2027',
+    periodType: 'term',
+    periodValue: 'HK2',
+    startDate: '2027-01-16',
+    endDate: '2027-05-31',
+    status: 'active',
+    description: 'Đánh giá KPI Nhân viên Kỳ II năm học 2026-2027'
+  },
+  {
+    id: 'period_staff_2026_2027',
+    name: 'Cả năm (2026-2027)',
+    academicYear: '2026-2027',
+    periodType: 'year',
+    periodValue: 'FULL_YEAR',
+    startDate: '2026-09-01',
+    endDate: '2027-05-31',
+    status: 'active',
+    description: 'Tổng kết đánh giá, chấm điểm KPI Nhân viên Cả năm học 2026-2027 (Khung 30đ + 70đ)'
+  },
+
+  // 2. CÁC THÁNG TRONG NĂM HỌC 2026-2027
+  {
+    id: 'period_staff_2026_m09',
+    name: 'Tháng 9/2026',
+    academicYear: '2026-2027',
+    periodType: 'month',
+    periodValue: '09',
+    startDate: '2026-09-01',
+    endDate: '2026-09-30',
+    status: 'active',
+    description: 'Đánh giá KPI Nhân viên Tháng 9 năm học 2026-2027'
+  },
+  {
+    id: 'period_staff_2026_m10',
+    name: 'Tháng 10/2026',
+    academicYear: '2026-2027',
+    periodType: 'month',
+    periodValue: '10',
+    startDate: '2026-10-01',
+    endDate: '2026-10-31',
+    status: 'active',
+    description: 'Đánh giá KPI Nhân viên Tháng 10 năm học 2026-2027'
+  },
+  {
+    id: 'period_staff_2026_m11',
+    name: 'Tháng 11/2026',
+    academicYear: '2026-2027',
+    periodType: 'month',
+    periodValue: '11',
+    startDate: '2026-11-01',
+    endDate: '2026-11-30',
+    status: 'active',
+    description: 'Đánh giá KPI Nhân viên Tháng 11 năm học 2026-2027'
+  },
+  {
+    id: 'period_staff_2026_m12',
+    name: 'Tháng 12/2026',
+    academicYear: '2026-2027',
+    periodType: 'month',
+    periodValue: '12',
+    startDate: '2026-12-01',
+    endDate: '2026-12-31',
+    status: 'active',
+    description: 'Đánh giá KPI Nhân viên Tháng 12 năm học 2026-2027'
+  },
+  {
+    id: 'period_staff_2027_m01',
+    name: 'Tháng 1/2027',
+    academicYear: '2026-2027',
+    periodType: 'month',
+    periodValue: '01',
+    startDate: '2027-01-01',
+    endDate: '2027-01-31',
+    status: 'active',
+    description: 'Đánh giá KPI Nhân viên Tháng 1 năm 2027'
+  },
+  {
+    id: 'period_staff_2027_m02',
+    name: 'Tháng 2/2027',
+    academicYear: '2026-2027',
+    periodType: 'month',
+    periodValue: '02',
+    startDate: '2027-02-01',
+    endDate: '2027-02-28',
+    status: 'active',
+    description: 'Đánh giá KPI Nhân viên Tháng 2 năm 2027'
+  },
+  {
+    id: 'period_staff_2027_m03',
+    name: 'Tháng 3/2027',
+    academicYear: '2026-2027',
+    periodType: 'month',
+    periodValue: '03',
+    startDate: '2027-03-01',
+    endDate: '2027-03-31',
+    status: 'active',
+    description: 'Đánh giá KPI Nhân viên Tháng 3 năm 2027'
+  },
+  {
+    id: 'period_staff_2027_m04',
+    name: 'Tháng 4/2027',
+    academicYear: '2026-2027',
+    periodType: 'month',
+    periodValue: '04',
+    startDate: '2027-04-01',
+    endDate: '2027-04-30',
+    status: 'active',
+    description: 'Đánh giá KPI Nhân viên Tháng 4 năm 2027'
+  },
+  {
+    id: 'period_staff_2027_m05',
+    name: 'Tháng 5/2027',
+    academicYear: '2026-2027',
+    periodType: 'month',
+    periodValue: '05',
+    startDate: '2027-05-01',
+    endDate: '2027-05-31',
+    status: 'active',
+    description: 'Đánh giá KPI Nhân viên Tháng 5 năm 2027'
+  },
+  {
+    id: 'period_staff_2027_m06',
+    name: 'Tháng 6/2027',
+    academicYear: '2026-2027',
+    periodType: 'month',
+    periodValue: '06',
+    startDate: '2027-06-01',
+    endDate: '2027-06-30',
+    status: 'active',
+    description: 'Đánh giá KPI Nhân viên Tháng 6 năm 2027'
+  },
+  {
+    id: 'period_staff_2027_m07',
+    name: 'Tháng 7/2027',
+    academicYear: '2026-2027',
+    periodType: 'month',
+    periodValue: '07',
+    startDate: '2027-07-01',
+    endDate: '2027-07-31',
+    status: 'active',
+    description: 'Đánh giá KPI Nhân viên Tháng 7 năm 2027'
+  },
+  {
+    id: 'period_staff_2027_m08',
+    name: 'Tháng 8/2027',
+    academicYear: '2026-2027',
+    periodType: 'month',
+    periodValue: '08',
+    startDate: '2027-08-01',
+    endDate: '2027-08-31',
+    status: 'active',
+    description: 'Đánh giá KPI Nhân viên Tháng 8 năm 2027'
   }
 ];
 

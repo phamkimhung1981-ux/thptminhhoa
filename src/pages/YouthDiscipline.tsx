@@ -269,11 +269,13 @@ export default function YouthDisciplinePage() {
       const lk = await youthDisciplineService.getWeeklyLock(selectedYear, activeWeekForLock);
       setWeeklyLock(lk);
 
-      // Load locks map for all 37 weeks
+      // Load locks map for all 37 weeks concurrently
       const locksMap: Record<number, YouthWeeklyLockRecord> = {};
-      for (let w = 1; w <= 37; w++) {
-        locksMap[w] = await youthDisciplineService.getWeeklyLock(selectedYear, w);
-      }
+      await Promise.all(
+        Array.from({ length: 37 }, (_, i) => i + 1).map(async w => {
+          locksMap[w] = await youthDisciplineService.getWeeklyLock(selectedYear, w);
+        })
+      );
       setAllWeeklyLocks(locksMap);
 
       // Load audit logs
@@ -941,7 +943,7 @@ export default function YouthDisciplinePage() {
       setViolations(updatedList);
       await loadAllData();
     } catch (err: any) {
-      alert(err.message || 'Lỗi khi lưu vi phạm');
+      showToast(err.message || 'Lỗi khi lưu vi phạm');
     }
   };
 
@@ -1072,7 +1074,7 @@ export default function YouthDisciplinePage() {
       setTargetViolationToDelete(null);
       await loadAllData();
     } catch (e: any) {
-      alert(e.message || 'Lỗi khi xóa vi phạm');
+      showToast(e.message || 'Lỗi khi xóa vi phạm');
     }
   };
 
@@ -1106,7 +1108,7 @@ export default function YouthDisciplinePage() {
       setIsBatchDeleteViolationsModalOpen(false);
       loadAllData();
     } catch (e: any) {
-      alert(e.message || 'Lỗi khi xóa hàng loạt vi phạm');
+      showToast(e.message || 'Lỗi khi xóa hàng loạt vi phạm');
     }
   };
 
@@ -1141,7 +1143,7 @@ export default function YouthDisciplinePage() {
       setIsClearScopeViolationsModalOpen(false);
       loadAllData();
     } catch (e: any) {
-      alert(e.message || 'Lỗi khi xóa toàn bộ vi phạm');
+      showToast(e.message || 'Lỗi khi xóa toàn bộ vi phạm');
     }
   };
 
@@ -1159,7 +1161,7 @@ export default function YouthDisciplinePage() {
       showToast(nextStatus === 'DA_XAC_NHAN' ? 'Đã xác nhận vi phạm!' : 'Đã hủy xác nhận vi phạm!');
       loadAllData();
     } catch (e: any) {
-      alert(e.message || 'Lỗi khi cập nhật trạng thái');
+      showToast(e.message || 'Lỗi khi cập nhật trạng thái');
     }
   };
 
@@ -1181,7 +1183,7 @@ export default function YouthDisciplinePage() {
       await youthDisciplineService.saveDailyCheckSheet(sheet, effectiveRole);
       showToast('Đã lưu kết quả kiểm tra nền nếp hằng ngày thành công!');
     } catch (e: any) {
-      alert(e.message || 'Lỗi khi lưu sổ kiểm tra');
+      showToast(e.message || 'Lỗi khi lưu sổ kiểm tra');
     }
   };
 
@@ -1213,7 +1215,7 @@ export default function YouthDisciplinePage() {
         showToast(`Đã chốt kết quả nền nếp Tuần ${selectedWeek} thành công!`);
         await loadAllData();
       } catch (e: any) {
-        alert(e.message || 'Lỗi khi chốt tuần');
+        showToast(e.message || 'Lỗi khi chốt tuần');
       }
     }
   };
@@ -1233,7 +1235,7 @@ export default function YouthDisciplinePage() {
       await loadAllData();
       setIsWeekLockModalOpen(false);
     } catch (e: any) {
-      alert(e.message || 'Lỗi khi chốt tuần');
+      showToast(e.message || 'Lỗi khi chốt tuần');
     }
   };
 
@@ -1257,7 +1259,7 @@ export default function YouthDisciplinePage() {
       await loadAllData();
       setIsWeekLockModalOpen(false);
     } catch (e: any) {
-      alert(e.message || 'Lỗi khi mở khóa tuần');
+      showToast(e.message || 'Lỗi khi mở khóa tuần');
     }
   };
 
@@ -1280,7 +1282,7 @@ export default function YouthDisciplinePage() {
       showToast(`Đã mở khóa sửa kết quả Tuần ${selectedWeek}!`);
       loadAllData();
     } catch (e: any) {
-      alert(e.message || 'Lỗi khi mở khóa tuần');
+      showToast(e.message || 'Lỗi khi mở khóa tuần');
     }
   };
 
@@ -1308,7 +1310,7 @@ export default function YouthDisciplinePage() {
             <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 uppercase tracking-wider">
               ĐOÀN TNCS HỒ CHÍ MINH
             </span>
-            <span className="text-xs font-bold text-slate-500">THPT SƠN LƯƠNG</span>
+            <span className="text-xs font-bold text-slate-500">THPT MINH HÒA</span>
           </div>
         </div>
 
@@ -1353,7 +1355,7 @@ export default function YouthDisciplinePage() {
                   THEO DÕI NỀN NẾP HỌC SINH – ĐOÀN TN
                 </h1>
                 <p className="text-xs sm:text-sm font-semibold text-blue-200">
-                  Ghi nhận vi phạm, chấm điểm thi đua tuần, quản lý nền nếp & nề nếp học sinh trường THPT Sơn Lương
+                  Ghi nhận vi phạm, chấm điểm thi đua tuần, quản lý nền nếp & nề nếp học sinh trường THPT Minh Hòa
                 </p>
               </div>
             </div>
@@ -2160,7 +2162,7 @@ export default function YouthDisciplinePage() {
               </h3>
               <p className="text-xs sm:text-sm font-semibold text-slate-500 mt-0.5">
                 {selectedWeek > 0
-                  ? 'Bảng chốt điểm thi đua nề nếp toàn trường THPT Sơn Lương'
+                  ? 'Bảng chốt điểm thi đua nề nếp toàn trường THPT Minh Hòa'
                   : 'Quản lý chốt/mở khóa điểm thi đua nền nếp theo từng tuần học trong năm'}
               </p>
             </div>
@@ -2389,7 +2391,7 @@ export default function YouthDisciplinePage() {
                 Danh Mục Tiêu Chí Chấm Điểm Nền Nếp (6 Nhóm)
               </h3>
               <p className="text-xs text-slate-500">
-                Bảng quy định mức điểm trừ theo nội quy trường THPT Sơn Lương
+                Bảng quy định mức điểm trừ theo nội quy trường THPT Minh Hòa
               </p>
             </div>
 
@@ -2841,7 +2843,7 @@ export default function YouthDisciplinePage() {
                     {editingViolation ? '✏️ Chỉnh sửa bản ghi vi phạm' : '➕ Ghi nhận vi phạm nền nếp mới'}
                   </h3>
                   <p className="text-xs text-blue-100">
-                    Đoàn TNCS Hồ Chí Minh – Trường THPT Sơn Lương
+                    Đoàn TNCS Hồ Chí Minh – Trường THPT Minh Hòa
                   </p>
                 </div>
               </div>

@@ -23,7 +23,8 @@ import {
   FileSpreadsheet,
   Building2,
   Share2,
-  Send
+  Send,
+  History
 } from 'lucide-react';
 import BackButton from '../components/ui/BackButton';
 import { Card } from '../components/ui/Card';
@@ -40,6 +41,11 @@ import {
 } from '../utils/departmentScheduleExportWord';
 import DepartmentScheduleWordUploadModal from '../components/departmentSchedule/DepartmentScheduleWordUploadModal';
 import DepartmentSchedulePrintModal from '../components/departmentSchedule/DepartmentSchedulePrintModal';
+import DeleteScheduleConfirmModal from '../components/schedules/DeleteScheduleConfirmModal';
+import DeleteWeekConfirmModal from '../components/schedules/DeleteWeekConfirmModal';
+import ScheduleAuditLogModal from '../components/schedules/ScheduleAuditLogModal';
+import { checkCanDeleteScheduleTask, checkCanDeleteEntireWeek } from '../utils/schedulePermissions';
+import { scheduleAuditService } from '../services/scheduleAuditService';
 import { PRESET_DEPARTMENTS } from './Tasks';
 import { getWeekInfoByNumber, getAllWeeksInYear, getWeekDayDates, WeekDayDateItem } from '../utils/schoolWeekUtils';
 import AutoResizeTextarea from '../components/ui/AutoResizeTextarea';
@@ -97,6 +103,30 @@ export default function DepartmentSchedule() {
   // Modals
   const [isWordUploadOpen, setIsWordUploadOpen] = useState<boolean>(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState<boolean>(false);
+
+  // Trạng thái modal Xóa lịch giao việc của tổ
+  const [deletingTaskInfo, setDeletingTaskInfo] = useState<{
+    dateIso: string;
+    dayName: string;
+    dateStr: string;
+    timeSlot: 'morning' | 'afternoon';
+    lineIndex?: number;
+    taskContent: string;
+    dutyEvaluator?: string;
+  } | null>(null);
+
+  const [isDeleteWeekModalOpen, setIsDeleteWeekModalOpen] = useState(false);
+  const [isAuditLogModalOpen, setIsAuditLogModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Phân quyền xóa lịch công tác của tổ
+  const canDeleteInView = useMemo(() => {
+    return checkCanDeleteScheduleTask(user, 'department', selectedDeptId).canDelete;
+  }, [user, selectedDeptId]);
+
+  const canDeleteEntireWeek = useMemo(() => {
+    return checkCanDeleteEntireWeek(user).canDelete;
+  }, [user]);
 
   // Selected department config
   const currentDeptConfig = useMemo(() => {
@@ -279,6 +309,159 @@ export default function DepartmentSchedule() {
     handleUpdateDay(dateIso, field, newText);
   };
 
+  // Mở modal xác nhận xóa công việc của tổ
+  const handleOpenDeleteTask = (
+    dateIso: string,
+    dayName: string,
+    dateStr: string,
+    timeSlot: 'morning' | 'afternoon',
+    taskContent: string,
+    lineIndex?: number,
+    dutyEvaluator?: string
+  ) => {
+    const perm = checkCanDeleteScheduleTask(user, 'department', selectedDeptId);
+    if (!perm.canDelete) {
+      showToast(perm.reason || 'Bạn không có quyền xóa lịch của tổ này.');
+      return;
+    }
+    setDeletingTaskInfo({
+      dateIso,
+      dayName,
+      dateStr,
+      timeSlot,
+      lineIndex,
+      taskContent: taskContent.trim(),
+      dutyEvaluator
+    });
+  };
+
+  // Xác nhận xóa công việc trong modal
+  const handleConfirmDeleteTask = async () => {
+    if (!schedule || !deletingTaskInfo) return;
+    setIsDeleting(true);
+    try {
+      // 1. Kiểm tra phân quyền ở Backend (trả về 403 Forbidden nếu không đủ quyền)
+      try {
+        const resp = await fetch('/api/schedules/delete-task', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user,
+            scope: 'department',
+            departmentId: selectedDeptId,
+            taskId: `dept_${deletingTaskInfo.dateIso}_${deletingTaskInfo.timeSlot}`,
+            taskContent: deletingTaskInfo.taskContent,
+            dayName: deletingTaskInfo.dayName
+          })
+        });
+        if (resp.status === 403) {
+          const errData = await resp.json().catch(() => ({}));
+          showToast(errData.error || '403 Forbidden: Không có quyền xóa lịch giao việc.');
+          setDeletingTaskInfo(null);
+          return;
+        }
+      } catch (apiErr) {
+        console.warn('Backend API notification warning:', apiErr);
+      }
+
+      // 2. Cập nhật dữ liệu công việc: Nếu xóa 1 dòng thì chỉ xóa dòng đó, giữ nguyên dòng khác và các cột khác
+      const targetDay = schedule.days?.find(d => d.date === deletingTaskInfo.dateIso);
+      const oldField = deletingTaskInfo.timeSlot === 'morning' ? 'morningTasks' : 'afternoonTasks';
+      const currentRaw = (targetDay ? targetDay[oldField] : '') || '';
+
+      let newTasksVal = '';
+      if (deletingTaskInfo.lineIndex !== undefined) {
+        const lines = currentRaw.split('\n');
+        const updatedLines = lines.filter((_, idx) => idx !== deletingTaskInfo.lineIndex);
+        newTasksVal = updatedLines.join('\n').trim();
+      } else {
+        newTasksVal = '';
+      }
+
+      const newDays = schedule.days?.map(d => {
+        if (d.date !== deletingTaskInfo.dateIso) return d;
+        return {
+          ...d,
+          [oldField]: newTasksVal
+        };
+      }) || [];
+
+      const updatedSchedule: DepartmentWeeklySchedule = {
+        ...schedule,
+        days: newDays,
+        updatedAt: new Date().toISOString()
+      };
+
+      setSchedule(updatedSchedule);
+      await departmentScheduleService.saveSchedule(updatedSchedule);
+
+      // Cập nhật lại danh sách allSchedules
+      setAllSchedules(prev => prev.map(s => s.id === updatedSchedule.id ? updatedSchedule : s));
+
+      // 3. Ghi Audit Log theo dõi lịch sử xóa
+      try {
+        await scheduleAuditService.logDeletion({
+          action: 'delete_single',
+          actionLabel: `Xóa công việc (${deletingTaskInfo.timeSlot === 'morning' ? 'Sáng' : 'Chiều'} ${deletingTaskInfo.dayName})`,
+          userName: user?.name || 'Chưa xác định',
+          userAccount: user?.username || user?.id || 'unknown',
+          userRole: user?.role || user?.position || 'N/A',
+          scheduleId: schedule.id,
+          taskId: `dept_${deletingTaskInfo.dateIso}_${deletingTaskInfo.timeSlot}`,
+          taskContent: deletingTaskInfo.taskContent,
+          taskDate: deletingTaskInfo.dateStr,
+          department: currentDeptConfig?.name || schedule.departmentName,
+          scope: 'Tổ chuyên môn',
+          hasEvaluation: Boolean(targetDay?.dutyLeaderOrEvaluation),
+          result: 'Thành công'
+        });
+      } catch (e) {}
+
+      setDeletingTaskInfo(null);
+      showToast('Đã xóa lịch giao việc thành công.');
+    } catch (e: any) {
+      console.error(e);
+      showToast(e.message || 'Không thể xóa lịch giao việc.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Xác nhận xóa toàn bộ lịch tuần của tổ (Dành cho Admin hoặc Hiệu trưởng)
+  const handleConfirmDeleteEntireWeek = async () => {
+    if (!schedule) return;
+    setIsDeleting(true);
+    try {
+      try {
+        const resp = await fetch('/api/schedules/delete-week', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user,
+            weekNumber: selectedWeek,
+            confirmationPhrase: 'XÓA LỊCH TUẦN'
+          })
+        });
+        if (resp.status === 403) {
+          const errData = await resp.json().catch(() => ({}));
+          showToast(errData.error || '403 Forbidden: Không có quyền xóa lịch tuần.');
+          setIsDeleteWeekModalOpen(false);
+          return;
+        }
+      } catch (e) {}
+
+      const updated = await departmentScheduleService.deleteEntireDepartmentWeek(schedule, user);
+      setSchedule(updated);
+      setAllSchedules(prev => prev.map(s => s.id === updated.id ? updated : s));
+      setIsDeleteWeekModalOpen(false);
+      showToast(`Đã xóa toàn bộ lịch Tuần ${selectedWeek} của ${currentDeptConfig.name} thành công.`);
+    } catch (e: any) {
+      showToast(e.message || 'Lỗi khi xóa lịch tuần.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="p-3 sm:p-6 max-w-[1500px] mx-auto space-y-6 pb-20 font-sans">
       
@@ -307,7 +490,7 @@ export default function DepartmentSchedule() {
               </span>
             </div>
             <p className="text-xs text-slate-500 font-medium mt-0.5">
-              Phân công kế hoạch công tác tuần theo biểu mẫu hành chính THPT Sơn Lương
+              Phân công kế hoạch công tác tuần theo biểu mẫu hành chính THPT Minh Hòa
             </p>
           </div>
         </div>
@@ -358,6 +541,30 @@ export default function DepartmentSchedule() {
             >
               <Printer size={15} />
               <span className="hidden sm:inline">In lịch</span>
+            </button>
+          )}
+
+          {/* Audit Log Modal Button */}
+          <button
+            type="button"
+            onClick={() => setIsAuditLogModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+            title="Xem lịch sử thao tác xóa lịch giao việc"
+          >
+            <History size={15} />
+            <span className="hidden sm:inline">Nhật ký xóa</span>
+          </button>
+
+          {/* Delete Entire Week Button (Only Admin or Principal) */}
+          {canDeleteEntireWeek && schedule && (
+            <button
+              type="button"
+              onClick={() => setIsDeleteWeekModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+              title="Xóa toàn bộ lịch tuần này của tổ chuyên môn"
+            >
+              <Trash2 size={15} />
+              <span className="hidden sm:inline">Xóa lịch tuần</span>
             </button>
           )}
 
@@ -489,7 +696,7 @@ export default function DepartmentSchedule() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-6 border-b border-slate-200 gap-4">
           <div className="space-y-1">
             <h2 className="text-base sm:text-lg font-bold uppercase tracking-tight text-slate-900">
-              TRƯỜNG THPT SƠN LƯƠNG
+              TRƯỜNG THPT MINH HÒA
             </h2>
             <div className="flex items-center gap-2 text-sm sm:text-base font-extrabold text-blue-700 uppercase">
               <span>TỔ:</span>
@@ -603,7 +810,48 @@ export default function DepartmentSchedule() {
                           >
                             <Plus size={11} /> Thêm dòng việc
                           </button>
+                          {canDeleteInView && day.morningTasks?.trim() && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenDeleteTask(wDay.dateIso, wDay.dayOfWeek, wDay.dateDisplayShort, 'morning', day.morningTasks, undefined, day.dutyLeaderOrEvaluation)}
+                              className="text-[10px] text-rose-600 hover:text-rose-800 font-bold flex items-center gap-1 cursor-pointer"
+                              title="Xóa toàn bộ nội dung buổi sáng của ngày này"
+                            >
+                              <Trash2 size={11} /> Xóa buổi sáng
+                            </button>
+                          )}
                         </div>
+
+                        {/* Danh sách từng dòng công việc kèm nút xóa riêng từng dòng nếu có nhiều dòng */}
+                        {day.morningTasks && day.morningTasks.trim().includes('\n') && (
+                          <div className="space-y-1 mb-2 bg-slate-50/70 p-1.5 rounded-lg border border-slate-200/80">
+                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5 flex items-center justify-between">
+                              <span>Các đầu việc:</span>
+                              <span className="text-[9px] text-slate-400 font-normal">Rê chuột để xóa từng việc</span>
+                            </div>
+                            {day.morningTasks.split('\n').map((line, lIdx) => {
+                              if (!line.trim()) return null;
+                              return (
+                                <div key={lIdx} className="group/line flex items-start justify-between gap-1.5 p-1 rounded hover:bg-rose-50/90 transition-colors">
+                                  <span className="text-xs text-slate-800 leading-relaxed font-medium flex-1 break-words">
+                                    {line}
+                                  </span>
+                                  {canDeleteInView && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenDeleteTask(wDay.dateIso, wDay.dayOfWeek, wDay.dateDisplayShort, 'morning', line, lIdx, day.dutyLeaderOrEvaluation)}
+                                      className="opacity-0 group-hover/line:opacity-100 p-0.5 text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded transition-all shrink-0 cursor-pointer"
+                                      title="Xóa riêng dòng công việc này"
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
                         <AutoResizeTextarea
                           minHeight={64}
                           value={day.morningTasks || ''}
@@ -623,7 +871,48 @@ export default function DepartmentSchedule() {
                           >
                             <Plus size={11} /> Thêm dòng việc
                           </button>
+                          {canDeleteInView && day.afternoonTasks?.trim() && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenDeleteTask(wDay.dateIso, wDay.dayOfWeek, wDay.dateDisplayShort, 'afternoon', day.afternoonTasks, undefined, day.dutyLeaderOrEvaluation)}
+                              className="text-[10px] text-rose-600 hover:text-rose-800 font-bold flex items-center gap-1 cursor-pointer"
+                              title="Xóa toàn bộ nội dung buổi chiều của ngày này"
+                            >
+                              <Trash2 size={11} /> Xóa buổi chiều
+                            </button>
+                          )}
                         </div>
+
+                        {/* Danh sách từng dòng công việc kèm nút xóa riêng từng dòng nếu có nhiều dòng */}
+                        {day.afternoonTasks && day.afternoonTasks.trim().includes('\n') && (
+                          <div className="space-y-1 mb-2 bg-amber-50/40 p-1.5 rounded-lg border border-amber-200/60">
+                            <div className="text-[10px] font-bold text-amber-900 uppercase tracking-wider mb-0.5 flex items-center justify-between">
+                              <span>Các đầu việc:</span>
+                              <span className="text-[9px] text-amber-700 font-normal">Rê chuột để xóa từng việc</span>
+                            </div>
+                            {day.afternoonTasks.split('\n').map((line, lIdx) => {
+                              if (!line.trim()) return null;
+                              return (
+                                <div key={lIdx} className="group/line flex items-start justify-between gap-1.5 p-1 rounded hover:bg-rose-50/90 transition-colors">
+                                  <span className="text-xs text-slate-800 leading-relaxed font-medium flex-1 break-words">
+                                    {line}
+                                  </span>
+                                  {canDeleteInView && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenDeleteTask(wDay.dateIso, wDay.dayOfWeek, wDay.dateDisplayShort, 'afternoon', line, lIdx, day.dutyLeaderOrEvaluation)}
+                                      className="opacity-0 group-hover/line:opacity-100 p-0.5 text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded transition-all shrink-0 cursor-pointer"
+                                      title="Xóa riêng dòng công việc này"
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
                         <AutoResizeTextarea
                           minHeight={64}
                           value={day.afternoonTasks || ''}
@@ -775,6 +1064,44 @@ export default function DepartmentSchedule() {
           schedule={schedule}
         />
       )}
+
+      {/* Modal Xác nhận Xóa Lịch Giao Việc */}
+      {deletingTaskInfo && (
+        <DeleteScheduleConfirmModal
+          isOpen={Boolean(deletingTaskInfo)}
+          onClose={() => setDeletingTaskInfo(null)}
+          onConfirm={handleConfirmDeleteTask}
+          taskItem={{
+            content: deletingTaskInfo.taskContent,
+            assignee: currentDeptConfig?.name || schedule?.departmentName,
+            leaderInCharge: `Tổ trưởng ${currentDeptConfig?.shortName || currentDeptConfig?.name || 'Tổ chuyên môn'}`,
+            status: 'Đang thực hiện'
+          }}
+          dayName={deletingTaskInfo.dayName}
+          dateStr={deletingTaskInfo.dateStr}
+          timeSlot={deletingTaskInfo.timeSlot}
+          dutyEvaluator={deletingTaskInfo.dutyEvaluator}
+          isSubmitting={isDeleting}
+        />
+      )}
+
+      {/* Modal Xóa Toàn Bộ Lịch Tuần Của Tổ (Dành cho Quản trị viên & Hiệu trưởng) */}
+      {isDeleteWeekModalOpen && schedule && (
+        <DeleteWeekConfirmModal
+          isOpen={isDeleteWeekModalOpen}
+          onClose={() => setIsDeleteWeekModalOpen(false)}
+          onConfirm={handleConfirmDeleteEntireWeek}
+          weekNumber={selectedWeek}
+          departmentName={currentDeptConfig?.name || schedule.departmentName}
+          isSubmitting={isDeleting}
+        />
+      )}
+
+      {/* Modal Nhật Ký Xóa (Audit Log) */}
+      <ScheduleAuditLogModal
+        isOpen={isAuditLogModalOpen}
+        onClose={() => setIsAuditLogModalOpen(false)}
+      />
 
     </div>
   );

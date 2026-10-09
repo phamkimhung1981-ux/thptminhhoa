@@ -26,7 +26,14 @@ import {
   X,
   Check,
   ChevronRight,
-  Info
+  Info,
+  ListTodo,
+  Save,
+  ShieldAlert,
+  ArrowUp,
+  ArrowDown,
+  ExternalLink,
+  CheckSquare
 } from 'lucide-react';
 import {
   YouthDutySchedule,
@@ -35,6 +42,12 @@ import {
   DayOfWeekName
 } from '../types/youthDuty';
 import { youthDutyService } from '../services/youthDutyService';
+import { youthDisciplineService } from '../services/youthDisciplineService';
+import { homeroomService } from '../services/homeroomService';
+import { DEFAULT_CLASSES, SAMPLE_STUDENTS } from '../lib/homeroomData';
+import { DEFAULT_YOUTH_CRITERIA } from '../lib/youthDisciplineData';
+import { YouthDisciplineCriterion, YouthViolationRecord } from '../types/youthDiscipline';
+import { ClassInfo, Student } from '../types/homeroom';
 import {
   downloadSampleDutyDocx,
   exportDutyScheduleToWord
@@ -68,10 +81,10 @@ export default function YouthDutySchedulePage() {
   const [taskConfigs, setTaskConfigs] = useState<YouthDutyTaskConfig[]>([]);
   const [metadata, setMetadata] = useState<YouthDutyMetadata>({
     academicYear: '2026–2027',
-    organizationName: 'ĐOÀN TRƯỜNG THPT SƠN LƯƠNG',
-    parentOrganizationName: 'ĐOÀN XÃ SƠN LƯƠNG',
+    organizationName: 'ĐOÀN TRƯỜNG THPT MINH HÒA',
+    parentOrganizationName: 'ĐOÀN XÃ MINH HÒA',
     unionTitle: 'ĐOÀN TNCS HỒ CHÍ MINH',
-    locationDate: 'Sơn Lương, ngày 17 tháng 09 năm 2026',
+    locationDate: 'Minh Hòa, ngày 17 tháng 09 năm 2026',
     secretaryName: 'Phan Thị Lan Phương',
     secretaryTitle: 'Bí Thư',
     partyCommitteeTitle: 'Xác nhận của Ban Chi Ủy'
@@ -93,6 +106,38 @@ export default function YouthDutySchedulePage() {
 
   const [isTaskConfigModalOpen, setIsTaskConfigModalOpen] = useState<boolean>(false);
   const [newTaskName, setNewTaskName] = useState<string>('');
+  const [editingTaskConfigId, setEditingTaskConfigId] = useState<string | null>(null);
+  const [editingTaskConfigName, setEditingTaskConfigName] = useState<string>('');
+
+  // Quick Edit Tasks Modal State
+  const [quickEditSchedule, setQuickEditSchedule] = useState<YouthDutySchedule | null>(null);
+  const [quickMorningTasks, setQuickMorningTasks] = useState<string[]>([]);
+  const [quickAfternoonTasks, setQuickAfternoonTasks] = useState<string[]>([]);
+  const [quickNewMorningTask, setQuickNewMorningTask] = useState<string>('');
+  const [quickNewAfternoonTask, setQuickNewAfternoonTask] = useState<string>('');
+
+  // Delete Week Modal State
+  const [isDeleteWeekModalOpen, setIsDeleteWeekModalOpen] = useState<boolean>(false);
+
+  // Youth Discipline Quick Record Modal State
+  const [isYouthRecordModalOpen, setIsYouthRecordModalOpen] = useState<boolean>(false);
+  const [recordVioDate, setRecordVioDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [recordVioWeek, setRecordVioWeek] = useState<number>(3);
+  const [recordVioPeriod, setRecordVioPeriod] = useState<string>('Sáng');
+  const [recordVioClassId, setRecordVioClassId] = useState<string>('');
+  const [recordVioStudentId, setRecordVioStudentId] = useState<string>('');
+  const [recordVioCriterionId, setRecordVioCriterionId] = useState<string>('');
+  const [recordVioMinusPoints, setRecordVioMinusPoints] = useState<number>(2);
+  const [recordVioLocation, setRecordVioLocation] = useState<string>('Cổng trường');
+  const [recordVioContent, setRecordVioContent] = useState<string>('');
+  const [recordVioTargetMode, setRecordVioTargetMode] = useState<'single' | 'whole_class'>('single');
+  const [recordVioInspector, setRecordVioInspector] = useState<string>('Đội Cờ đỏ');
+  const [recordVioNotes, setRecordVioNotes] = useState<string>('');
+  const [classesList, setClassesList] = useState<ClassInfo[]>(DEFAULT_CLASSES);
+  const [studentsList, setStudentsList] = useState<Student[]>(SAMPLE_STUDENTS);
+  const [criteriaList, setCriteriaList] = useState<YouthDisciplineCriterion[]>(DEFAULT_YOUTH_CRITERIA);
+  const [deleteModeScope, setDeleteModeScope] = useState<'single' | 'range'>('single');
+  const [targetDeleteWeek, setTargetDeleteWeek] = useState<number>(2);
 
   const [isMetadataModalOpen, setIsMetadataModalOpen] = useState<boolean>(false);
 
@@ -137,19 +182,25 @@ export default function YouthDutySchedulePage() {
       setLoading(true);
       await youthDutyService.seedIfEmpty();
 
-      const [schedList, tasks, meta] = await Promise.all([
+      const [schedList, tasks, meta, cls, stus, crits] = await Promise.all([
         youthDutyService.getSchedules(
           selectedYear,
           weekFilterMode === 'all' ? 0 : selectedFromWeek,
           weekFilterMode === 'range' ? selectedToWeek : selectedFromWeek
         ),
         youthDutyService.getTaskConfigs(),
-        youthDutyService.getMetadata(selectedYear)
+        youthDutyService.getMetadata(selectedYear),
+        homeroomService.getClasses().catch(() => []),
+        homeroomService.getStudents().catch(() => []),
+        youthDisciplineService.getCriteria().catch(() => [])
       ]);
 
       setSchedules(schedList);
       setTaskConfigs(tasks);
       setMetadata(meta);
+      if (cls && cls.length > 0) setClassesList(cls);
+      if (stus && stus.length > 0) setStudentsList(stus);
+      if (crits && crits.length > 0) setCriteriaList(crits);
     } catch (e) {
       console.error(e);
       showToast('Đã tải dữ liệu lịch trực Đoàn.');
@@ -354,6 +405,217 @@ export default function YouthDutySchedulePage() {
     showToast('Đã xóa nội dung công việc!');
   };
 
+  // 9. Task Config Edit
+  const handleStartEditTaskConfig = (task: YouthDutyTaskConfig) => {
+    setEditingTaskConfigId(task.id);
+    setEditingTaskConfigName(task.name);
+  };
+
+  const handleSaveEditTaskConfig = async () => {
+    if (!editingTaskConfigId || !editingTaskConfigName.trim()) return;
+    const existing = taskConfigs.find(t => t.id === editingTaskConfigId);
+    if (!existing) return;
+    const updatedTask: YouthDutyTaskConfig = {
+      ...existing,
+      name: editingTaskConfigName.trim()
+    };
+    await youthDutyService.saveTaskConfig(updatedTask);
+    setEditingTaskConfigId(null);
+    setEditingTaskConfigName('');
+    const updated = await youthDutyService.getTaskConfigs();
+    setTaskConfigs(updated);
+    showToast('Đã cập nhật nội dung công việc mẫu thành công!');
+  };
+
+  const handleCancelEditTaskConfig = () => {
+    setEditingTaskConfigId(null);
+    setEditingTaskConfigName('');
+  };
+
+  // 10. Quick Edit Tasks for Specific Day's Schedule
+  const handleOpenQuickEditTasks = (sched: YouthDutySchedule) => {
+    setQuickEditSchedule(sched);
+    setQuickMorningTasks([...(sched.morningTasks || [])]);
+    setQuickAfternoonTasks([...(sched.afternoonTasks || [])]);
+    setQuickNewMorningTask('');
+    setQuickNewAfternoonTask('');
+  };
+
+  const handleMoveMorningTaskUp = (index: number) => {
+    if (index <= 0) return;
+    setQuickMorningTasks(prev => {
+      const next = [...prev];
+      const temp = next[index - 1];
+      next[index - 1] = next[index];
+      next[index] = temp;
+      return next;
+    });
+  };
+
+  const handleMoveMorningTaskDown = (index: number) => {
+    if (index >= quickMorningTasks.length - 1) return;
+    setQuickMorningTasks(prev => {
+      const next = [...prev];
+      const temp = next[index + 1];
+      next[index + 1] = next[index];
+      next[index] = temp;
+      return next;
+    });
+  };
+
+  const handleMoveAfternoonTaskUp = (index: number) => {
+    if (index <= 0) return;
+    setQuickAfternoonTasks(prev => {
+      const next = [...prev];
+      const temp = next[index - 1];
+      next[index - 1] = next[index];
+      next[index] = temp;
+      return next;
+    });
+  };
+
+  const handleMoveAfternoonTaskDown = (index: number) => {
+    if (index >= quickAfternoonTasks.length - 1) return;
+    setQuickAfternoonTasks(prev => {
+      const next = [...prev];
+      const temp = next[index + 1];
+      next[index + 1] = next[index];
+      next[index] = temp;
+      return next;
+    });
+  };
+
+  const handleSaveQuickEditTasks = async () => {
+    if (!quickEditSchedule) return;
+    try {
+      const updatedSchedule: YouthDutySchedule = {
+        ...quickEditSchedule,
+        morningTasks: quickMorningTasks,
+        afternoonTasks: quickAfternoonTasks,
+        updatedAt: new Date().toISOString()
+      };
+      await youthDutyService.saveSchedule(updatedSchedule, userRole);
+      setQuickEditSchedule(null);
+      await loadData();
+      showToast(`Đã cập nhật công việc trực Đoàn ${quickEditSchedule.dayOfWeek} (Tuần ${quickEditSchedule.weekNumber}) thành công!`);
+    } catch (e: any) {
+      console.error(e);
+      showToast(e.message || 'Lỗi khi lưu công việc trực');
+    }
+  };
+
+  // 11. Delete Entire Week
+  const handleConfirmDeleteWeek = async () => {
+    try {
+      let count = 0;
+      if (weekFilterMode === 'range' && deleteModeScope === 'range') {
+        const ids = schedules.map(s => s.id);
+        count = await youthDutyService.deleteWeekRange(selectedFromWeek, selectedToWeek, selectedYear, ids);
+        showToast(`Đã xóa toàn bộ lịch trực từ Tuần ${selectedFromWeek} đến Tuần ${selectedToWeek} (${count} bản ghi) thành công!`);
+      } else {
+        const weekToDel = weekFilterMode === 'single' ? selectedFromWeek : (targetDeleteWeek || selectedFromWeek);
+        const matchingSchedules = schedules.filter(s => s.weekNumber === weekToDel);
+        const ids = matchingSchedules.length > 0 ? matchingSchedules.map(s => s.id) : schedules.map(s => s.id);
+        count = await youthDutyService.deleteEntireWeek(weekToDel, selectedYear, ids);
+        showToast(`Đã xóa toàn bộ lịch trực Tuần ${weekToDel} (${count} bản ghi) thành công!`);
+      }
+      setIsDeleteWeekModalOpen(false);
+      await loadData();
+    } catch (e: any) {
+      console.error(e);
+      showToast(e.message || 'Lỗi khi xóa lịch cả tuần');
+    }
+  };
+
+  // 12. Quick Youth Discipline Recording from Duty Schedule
+  const handleOpenDisciplineRecord = (sched?: YouthDutySchedule, session?: 'morning' | 'afternoon') => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    setRecordVioDate(todayStr);
+    setRecordVioWeek(sched ? Number(sched.weekNumber) : selectedFromWeek);
+    setRecordVioPeriod(session === 'afternoon' ? 'Chiều' : 'Sáng');
+    setRecordVioInspector(sched?.assignedPeople || user?.name || 'Cán bộ Đoàn trực');
+    setRecordVioTargetMode('single');
+    setRecordVioContent('');
+    setRecordVioNotes('');
+    setRecordVioLocation('Khu vực trực trường');
+
+    if (classesList.length > 0) {
+      const cId = recordVioClassId || classesList[0].id;
+      setRecordVioClassId(cId);
+      const stus = studentsList.filter(s => s.classId === cId);
+      if (stus.length > 0) {
+        setRecordVioStudentId(stus[0].id);
+      }
+    }
+
+    if (criteriaList.length > 0) {
+      const c = criteriaList[0];
+      setRecordVioCriterionId(c.id);
+      setRecordVioMinusPoints(c.minusPoints);
+    }
+
+    setIsYouthRecordModalOpen(true);
+  };
+
+  const handleSaveDisciplineRecord = async () => {
+    const targetClass = classesList.find(c => c.id === recordVioClassId) || (classesList.length > 0 ? classesList[0] : null);
+    const targetCriterion = criteriaList.find(c => c.id === recordVioCriterionId) || (criteriaList.length > 0 ? criteriaList[0] : null);
+
+    if (!targetClass || !targetCriterion) {
+      showToast('Vui lòng chọn lớp học và tiêu chí vi phạm');
+      return;
+    }
+
+    const targetStudent = studentsList.find(s => s.id === recordVioStudentId);
+    const monthNum = new Date(recordVioDate).getMonth() + 1;
+
+    try {
+      const newVio: YouthViolationRecord = {
+        id: '',
+        schoolYear: selectedYear,
+        weekNumber: recordVioWeek,
+        monthNumber: monthNum,
+        violationDate: recordVioDate,
+        violationTime: recordVioPeriod === 'Sáng' ? '07:15' : '13:30',
+        periodSlot: recordVioPeriod,
+        classId: targetClass.id,
+        className: targetClass.name,
+        studentId: recordVioTargetMode === 'whole_class' ? 'ALL_CLASS' : (targetStudent?.id || 'ALL_CLASS'),
+        studentName: recordVioTargetMode === 'whole_class' ? `Tập thể ${targetClass.name}` : (targetStudent?.name || `Tập thể ${targetClass.name}`),
+        studentCode: targetStudent?.code || '',
+        isWholeClass: recordVioTargetMode === 'whole_class',
+        criterionId: targetCriterion.id,
+        criterionCode: targetCriterion.code,
+        criterionName: targetCriterion.name,
+        category: targetCriterion.category,
+        categoryName: targetCriterion.categoryName,
+        severity: targetCriterion.severity,
+        minusPoints: Number(recordVioMinusPoints),
+        location: recordVioLocation,
+        content: recordVioContent.trim() || targetCriterion.name,
+        recordedBy: user?.id || 'can_bo_doan',
+        recordedByName: recordVioInspector.trim() || user?.name || 'Cán bộ Đoàn trực',
+        recordedByRole: user?.id === 'admin' || userRole.includes('ADMIN') || userRole.includes('QUAN_TRI')
+          ? 'ADMIN'
+          : (userPos.includes('BÍ THƯ') || userRole.includes('BI_THU') ? 'BI_THU_DOAN' : 'CAN_BO_DOAN'),
+        status: 'CHO_XAC_NHAN',
+        notes: recordVioNotes.trim() || undefined,
+        createdAt: new Date().toISOString()
+      };
+
+      const effectiveRole = user?.id === 'admin' || userRole.includes('ADMIN') || userRole.includes('QUAN_TRI')
+        ? 'ADMIN'
+        : (userPos.includes('BÍ THƯ') || userRole.includes('BI_THU') ? 'BI_THU_DOAN' : 'CAN_BO_DOAN');
+
+      await youthDisciplineService.saveViolation(newVio, effectiveRole);
+      setIsYouthRecordModalOpen(false);
+      showToast(`Đã ghi nhận vi phạm nền nếp: ${targetClass.name} - ${targetCriterion.name} (-${recordVioMinusPoints}đ) thành công!`);
+    } catch (e: any) {
+      console.error(e);
+      showToast(e.message || 'Lỗi khi ghi nhận vi phạm');
+    }
+  };
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-300">
       {/* Toast Notification */}
@@ -376,7 +638,7 @@ export default function YouthDutySchedulePage() {
                 📋 LỊCH TRỰC ĐOÀN THANH NIÊN
               </h1>
               <p className="text-xs sm:text-sm font-medium text-slate-500">
-                Quản lý, phân công và xuất lịch trực Đoàn trường THPT Sơn Lương theo tuần
+                Quản lý, phân công và xuất lịch trực Đoàn trường THPT Minh Hòa theo tuần
               </p>
             </div>
           </div>
@@ -441,10 +703,34 @@ export default function YouthDutySchedulePage() {
             <button
               type="button"
               onClick={() => setIsTaskConfigModalOpen(true)}
-              className="p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-2xl border border-slate-200 transition-all cursor-pointer"
-              title="Cấu hình danh mục công việc trực"
+              className="px-3.5 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-900 text-xs sm:text-sm font-bold rounded-2xl border border-blue-200 transition-all flex items-center gap-2 cursor-pointer"
+              title="Quản lý và chỉnh sửa danh mục nội dung công việc trực mẫu"
             >
-              <Settings size={18} />
+              <Settings size={16} className="text-blue-600" />
+              <span>Sửa công việc mẫu</span>
+            </button>
+          )}
+
+          {/* Nút Ghi nhận nền nếp Đoàn trực */}
+          <button
+            type="button"
+            onClick={() => handleOpenDisciplineRecord()}
+            className="px-3.5 py-2.5 bg-gradient-to-r from-blue-700 via-indigo-700 to-indigo-800 hover:from-blue-800 hover:to-indigo-900 text-white text-xs sm:text-sm font-black rounded-2xl shadow-md transition-all flex items-center gap-2 cursor-pointer border border-indigo-400/30"
+            title="Ghi nhận nề nếp, vi phạm học sinh và tập thể lớp theo ca trực Đoàn"
+          >
+            <ShieldAlert size={16} className="text-amber-300" />
+            <span>Ghi nhận nền nếp Đoàn</span>
+          </button>
+
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => setIsDeleteWeekModalOpen(true)}
+              className="px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs sm:text-sm font-bold rounded-2xl border border-rose-200 transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Xóa toàn bộ lịch trực của tuần đang chọn"
+            >
+              <Trash2 size={16} />
+              <span>Xóa lịch cả tuần</span>
             </button>
           )}
         </div>
@@ -576,10 +862,10 @@ export default function YouthDutySchedulePage() {
           <div className="grid grid-cols-2 gap-4 items-start border-b border-slate-100 pb-4">
             <div className="text-center space-y-0.5">
               <p className="text-xs sm:text-sm text-slate-800 uppercase font-medium">
-                {metadata.parentOrganizationName || 'ĐOÀN XÃ SƠN LƯƠNG'}
+                {metadata.parentOrganizationName || 'ĐOÀN XÃ MINH HÒA'}
               </p>
               <p className="text-xs sm:text-sm text-slate-950 uppercase font-black tracking-tight">
-                {metadata.organizationName || 'ĐOÀN TRƯỜNG THPT SƠN LƯƠNG'}
+                {metadata.organizationName || 'ĐOÀN TRƯỜNG THPT MINH HÒA'}
               </p>
               <div className="w-20 h-0.5 bg-slate-400 mx-auto mt-1"></div>
             </div>
@@ -589,7 +875,7 @@ export default function YouthDutySchedulePage() {
                 {metadata.unionTitle || 'ĐOÀN TNCS HỒ CHÍ MINH'}
               </p>
               <p className="text-xs sm:text-sm text-slate-600 italic font-serif">
-                {metadata.locationDate || 'Sơn Lương, ngày 17 tháng 09 năm 2026'}
+                {metadata.locationDate || 'Minh Hòa, ngày 17 tháng 09 năm 2026'}
               </p>
               <div className="w-20 h-0.5 bg-slate-400 mx-auto mt-1"></div>
             </div>
@@ -598,7 +884,7 @@ export default function YouthDutySchedulePage() {
           {/* TIÊU ĐỀ CHÍNH VĂN BẢN */}
           <div className="text-center space-y-1">
             <h2 className="text-lg sm:text-2xl font-black text-slate-900 uppercase tracking-tight font-serif">
-              LỊCH PHÂN CÔNG TRỰC ĐOÀN TRƯỜNG THPT SƠN LƯƠNG
+              LỊCH PHÂN CÔNG TRỰC ĐOÀN TRƯỜNG THPT MINH HÒA
             </h2>
           </div>
 
@@ -675,6 +961,17 @@ export default function YouthDutySchedulePage() {
                                 <li className="text-slate-400 italic">—</li>
                               )}
                             </ul>
+                            {canEdit && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenQuickEditTasks(sched)}
+                                className="mt-2 text-[11px] font-bold text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-300 inline-flex items-center gap-1 transition-all opacity-85 hover:opacity-100 cursor-pointer"
+                                title="Chỉnh sửa công việc trực buổi Sáng"
+                              >
+                                <Edit2 size={11} />
+                                <span>Sửa việc</span>
+                              </button>
+                            )}
                           </td>
 
                           {/* Chiều */}
@@ -691,6 +988,17 @@ export default function YouthDutySchedulePage() {
                                 <li className="text-slate-400 italic">—</li>
                               )}
                             </ul>
+                            {canEdit && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenQuickEditTasks(sched)}
+                                className="mt-2 text-[11px] font-bold text-indigo-800 hover:text-indigo-950 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded-md border border-indigo-300 inline-flex items-center gap-1 transition-all opacity-85 hover:opacity-100 cursor-pointer"
+                                title="Chỉnh sửa công việc trực buổi Chiều"
+                              >
+                                <Edit2 size={11} />
+                                <span>Sửa việc</span>
+                              </button>
+                            )}
                           </td>
 
                           {/* Người thực hiện */}
@@ -710,9 +1018,27 @@ export default function YouthDutySchedulePage() {
                                 <>
                                   <button
                                     type="button"
+                                    onClick={() => handleOpenQuickEditTasks(sched)}
+                                    className="px-2 py-1.5 text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-300 transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-bold"
+                                    title="Chỉnh sửa công việc trực Đoàn (Sáng / Chiều)"
+                                  >
+                                    <ListTodo size={13} />
+                                    <span>Sửa việc</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenDisciplineRecord(sched)}
+                                    className="px-2 py-1.5 text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-300 transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-bold"
+                                    title="Ghi nhận nền nếp / vi phạm theo ca trực này"
+                                  >
+                                    <ShieldAlert size={13} className="text-amber-500" />
+                                    <span>Ghi nền nếp</span>
+                                  </button>
+                                  <button
+                                    type="button"
                                     onClick={() => handleOpenEditModal(sched)}
                                     className="p-1.5 text-blue-700 hover:bg-blue-50 rounded-lg border border-blue-200 transition-colors cursor-pointer"
-                                    title="Chỉnh sửa lịch trực"
+                                    title="Chỉnh sửa toàn bộ lịch trực"
                                   >
                                     <Edit2 size={14} />
                                   </button>
@@ -753,15 +1079,33 @@ export default function YouthDutySchedulePage() {
                           <>
                             <button
                               type="button"
+                              onClick={() => handleOpenDisciplineRecord(sched)}
+                              className="p-1.5 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 transition-colors"
+                              title="Ghi nhận nền nếp ca trực"
+                            >
+                              <ShieldAlert size={14} className="text-amber-500" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenQuickEditTasks(sched)}
+                              className="p-1.5 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200 transition-colors"
+                              title="Chỉnh sửa công việc trực"
+                            >
+                              <ListTodo size={14} />
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => handleOpenEditModal(sched)}
-                              className="p-1 text-blue-600 hover:bg-blue-50 rounded-lg"
+                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg border border-blue-200 transition-colors"
+                              title="Chỉnh sửa lịch trực"
                             >
                               <Edit2 size={14} />
                             </button>
                             <button
                               type="button"
                               onClick={() => handleOpenDeleteModal(sched)}
-                              className="p-1 text-rose-600 hover:bg-rose-50 rounded-lg"
+                              className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg border border-rose-200 transition-colors"
+                              title="Xóa lịch trực này"
                             >
                               <Trash2 size={14} />
                             </button>
@@ -772,9 +1116,20 @@ export default function YouthDutySchedulePage() {
 
                     {/* Sáng */}
                     <div className="space-y-1">
-                      <span className="text-[11px] font-bold text-amber-700 uppercase bg-amber-50 px-2 py-0.5 rounded-md inline-block">
-                        ☀️ Buổi Sáng
-                      </span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-amber-700 uppercase bg-amber-50 px-2 py-0.5 rounded-md inline-block">
+                          ☀️ Buổi Sáng
+                        </span>
+                        {canEdit && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenQuickEditTasks(sched)}
+                            className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-50 px-1.5 py-0.5 rounded cursor-pointer"
+                          >
+                            ✏️ Sửa việc
+                          </button>
+                        )}
+                      </div>
                       <ul className="text-xs text-slate-700 space-y-0.5 pl-2">
                         {sched.morningTasks.map((t, i) => (
                           <li key={i}>• {t}</li>
@@ -784,9 +1139,20 @@ export default function YouthDutySchedulePage() {
 
                     {/* Chiều */}
                     <div className="space-y-1">
-                      <span className="text-[11px] font-bold text-indigo-700 uppercase bg-indigo-50 px-2 py-0.5 rounded-md inline-block">
-                        🌤️ Buổi Chiều
-                      </span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-indigo-700 uppercase bg-indigo-50 px-2 py-0.5 rounded-md inline-block">
+                          🌤️ Buổi Chiều
+                        </span>
+                        {canEdit && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenQuickEditTasks(sched)}
+                            className="text-[10px] font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 px-1.5 py-0.5 rounded cursor-pointer"
+                          >
+                            ✏️ Sửa việc
+                          </button>
+                        )}
+                      </div>
                       <ul className="text-xs text-slate-700 space-y-0.5 pl-2">
                         {sched.afternoonTasks.map((t, i) => (
                           <li key={i}>• {t}</li>
@@ -859,7 +1225,7 @@ export default function YouthDutySchedulePage() {
                   <h3 className="font-extrabold text-base sm:text-lg">
                     {editingSchedule ? '✏️ Chỉnh sửa lịch phân công trực Đoàn' : '➕ Tạo lịch phân công trực Đoàn mới'}
                   </h3>
-                  <p className="text-xs text-blue-100">Đoàn TNCS Hồ Chí Minh – Trường THPT Sơn Lương</p>
+                  <p className="text-xs text-blue-100">Đoàn TNCS Hồ Chí Minh – Trường THPT Minh Hòa</p>
                 </div>
               </div>
               <button
@@ -965,6 +1331,15 @@ export default function YouthDutySchedulePage() {
                     onChange={e => setCustomMorningTaskInput(e.target.value)}
                     placeholder="Thêm nhiệm vụ buổi sáng khác..."
                     className="flex-1 p-2 bg-white border border-slate-300 rounded-xl text-xs outline-none"
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (customMorningTaskInput.trim()) {
+                          setFormMorningTasks(prev => [...prev, customMorningTaskInput.trim()]);
+                          setCustomMorningTaskInput('');
+                        }
+                      }
+                    }}
                   />
                   <button
                     type="button"
@@ -974,11 +1349,45 @@ export default function YouthDutySchedulePage() {
                         setCustomMorningTaskInput('');
                       }
                     }}
-                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl"
+                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl cursor-pointer"
                   >
                     + Thêm
                   </button>
                 </div>
+
+                {/* Editable list of active Morning tasks */}
+                {formMorningTasks.length > 0 && (
+                  <div className="space-y-1.5 pt-2 border-t border-amber-200">
+                    <span className="text-[11px] font-bold text-amber-900 block">
+                      Danh sách công việc buổi Sáng (chỉnh sửa trực tiếp tại đây):
+                    </span>
+                    <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
+                      {formMorningTasks.map((tText, idx) => (
+                        <div key={idx} className="flex items-center gap-1.5 bg-white p-1.5 rounded-lg border border-amber-200 text-xs">
+                          <span className="text-[11px] font-bold text-amber-700 w-5 shrink-0 text-center">{idx + 1}.</span>
+                          <input
+                            type="text"
+                            value={tText}
+                            onChange={e => {
+                              const next = [...formMorningTasks];
+                              next[idx] = e.target.value;
+                              setFormMorningTasks(next);
+                            }}
+                            className="flex-1 bg-transparent border-b border-dashed border-slate-300 hover:border-blue-400 focus:border-blue-600 outline-none text-xs font-medium text-slate-800 py-0.5 px-1"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setFormMorningTasks(prev => prev.filter((_, i) => i !== idx))}
+                            className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded"
+                            title="Xóa công việc này"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Row 3: Nội dung Buổi Chiều */}
@@ -990,7 +1399,7 @@ export default function YouthDutySchedulePage() {
                   <button
                     type="button"
                     onClick={() => setFormAfternoonTasks([...formMorningTasks])}
-                    className="text-[11px] font-bold text-indigo-700 hover:underline bg-white px-2 py-0.5 rounded-md border border-indigo-200"
+                    className="text-[11px] font-bold text-indigo-700 hover:underline bg-white px-2 py-0.5 rounded-md border border-indigo-200 cursor-pointer"
                   >
                     ⮑ Sao chép từ buổi Sáng
                   </button>
@@ -1026,6 +1435,15 @@ export default function YouthDutySchedulePage() {
                     onChange={e => setCustomAfternoonTaskInput(e.target.value)}
                     placeholder="Thêm nhiệm vụ buổi chiều khác..."
                     className="flex-1 p-2 bg-white border border-slate-300 rounded-xl text-xs outline-none"
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (customAfternoonTaskInput.trim()) {
+                          setFormAfternoonTasks(prev => [...prev, customAfternoonTaskInput.trim()]);
+                          setCustomAfternoonTaskInput('');
+                        }
+                      }
+                    }}
                   />
                   <button
                     type="button"
@@ -1035,11 +1453,45 @@ export default function YouthDutySchedulePage() {
                         setCustomAfternoonTaskInput('');
                       }
                     }}
-                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl"
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl cursor-pointer"
                   >
                     + Thêm
                   </button>
                 </div>
+
+                {/* Editable list of active Afternoon tasks */}
+                {formAfternoonTasks.length > 0 && (
+                  <div className="space-y-1.5 pt-2 border-t border-indigo-200">
+                    <span className="text-[11px] font-bold text-indigo-900 block">
+                      Danh sách công việc buổi Chiều (chỉnh sửa trực tiếp tại đây):
+                    </span>
+                    <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
+                      {formAfternoonTasks.map((tText, idx) => (
+                        <div key={idx} className="flex items-center gap-1.5 bg-white p-1.5 rounded-lg border border-indigo-200 text-xs">
+                          <span className="text-[11px] font-bold text-indigo-700 w-5 shrink-0 text-center">{idx + 1}.</span>
+                          <input
+                            type="text"
+                            value={tText}
+                            onChange={e => {
+                              const next = [...formAfternoonTasks];
+                              next[idx] = e.target.value;
+                              setFormAfternoonTasks(next);
+                            }}
+                            className="flex-1 bg-transparent border-b border-dashed border-slate-300 hover:border-blue-400 focus:border-blue-600 outline-none text-xs font-medium text-slate-800 py-0.5 px-1"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setFormAfternoonTasks(prev => prev.filter((_, i) => i !== idx))}
+                            className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded"
+                            title="Xóa công việc này"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Row 4: Người thực hiện */}
@@ -1268,18 +1720,67 @@ export default function YouthDutySchedulePage() {
               {/* Task list */}
               <div className="max-h-60 overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-xl">
                 {taskConfigs.map((t, idx) => (
-                  <div key={t.id} className="p-3 flex items-center justify-between text-xs hover:bg-slate-50">
-                    <span className="font-bold text-slate-800">
-                      {idx + 1}. {t.name}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteTaskConfig(t.id)}
-                      className="text-rose-500 hover:text-rose-700 p-1"
-                      title="Xóa nội dung này"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                  <div key={t.id} className="p-3 flex items-center justify-between text-xs hover:bg-slate-50 gap-2">
+                    {editingTaskConfigId === t.id ? (
+                      <div className="flex items-center gap-2 w-full">
+                        <input
+                          type="text"
+                          value={editingTaskConfigName}
+                          onChange={e => setEditingTaskConfigName(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleSaveEditTaskConfig();
+                            } else if (e.key === 'Escape') {
+                              handleCancelEditTaskConfig();
+                            }
+                          }}
+                          className="flex-1 p-2 bg-white border border-blue-500 rounded-lg text-xs font-bold outline-none text-slate-900"
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          onClick={handleSaveEditTaskConfig}
+                          className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1 font-bold text-[11px] cursor-pointer"
+                          title="Lưu nội dung"
+                        >
+                          <Check size={13} />
+                          <span>Lưu</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCancelEditTaskConfig}
+                          className="p-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg cursor-pointer"
+                          title="Hủy"
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="font-bold text-slate-800 flex-1">
+                          {idx + 1}. {t.name}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleStartEditTaskConfig(t)}
+                            className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                            title="Chỉnh sửa nội dung này"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteTaskConfig(t.id)}
+                            className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                            title="Xóa nội dung này"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1289,10 +1790,662 @@ export default function YouthDutySchedulePage() {
               <button
                 type="button"
                 onClick={() => setIsTaskConfigModalOpen(false)}
-                className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl"
+                className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl cursor-pointer"
               >
                 Đóng
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4.5 MODAL CHỈNH SỬA CÔNG VIỆC LỊCH TRỰC ĐOÀN (SÁNG / CHIỀU) */}
+      {quickEditSchedule && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-[28px] shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 my-6">
+            <div className="p-5 border-b border-slate-100 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-white">
+                  <ListTodo size={22} />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base sm:text-lg">
+                    Chỉnh sửa công việc trực Đoàn – {quickEditSchedule.dayOfWeek} (Tuần {quickEditSchedule.weekNumber})
+                  </h3>
+                  <p className="text-xs text-emerald-100">
+                    Người thực hiện: <span className="font-bold underline">{quickEditSchedule.assignedPeople}</span>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setQuickEditSchedule(null)}
+                className="p-1 rounded-full text-white/80 hover:text-white hover:bg-white/20 transition-colors cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-5 sm:p-6 space-y-6 max-h-[75vh] overflow-y-auto text-xs sm:text-sm">
+              {/* PHẦN 1: CÔNG VIỆC BUỔI SÁNG */}
+              <div className="space-y-3 p-4 bg-amber-50/70 border border-amber-200 rounded-2xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">☀️</span>
+                    <h4 className="font-black text-amber-950 uppercase text-xs tracking-wider">
+                      Công việc buổi Sáng ({quickMorningTasks.length})
+                    </h4>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setQuickMorningTasks([...quickAfternoonTasks])}
+                      className="text-[11px] font-bold text-amber-800 hover:underline bg-white px-2 py-0.5 rounded-md border border-amber-300 cursor-pointer"
+                    >
+                      ⮑ Sao chép từ buổi Chiều
+                    </button>
+                    <span className="text-[11px] text-amber-700 italic hidden sm:inline">Nhấp chữ để sửa</span>
+                  </div>
+                </div>
+
+                {/* Danh sách nhiệm vụ sáng */}
+                <div className="space-y-1.5 max-h-48 overflow-y-auto bg-white p-2.5 rounded-xl border border-amber-200">
+                  {quickMorningTasks.length === 0 ? (
+                    <p className="text-xs text-slate-400 italic py-2 text-center">Chưa có nhiệm vụ nào trong buổi sáng</p>
+                  ) : (
+                    quickMorningTasks.map((t, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5 p-1.5 bg-amber-50/40 hover:bg-amber-100/50 rounded-lg border border-amber-200 transition-colors">
+                        <span className="text-xs font-black text-amber-800 w-5 text-center shrink-0">{idx + 1}.</span>
+                        <input
+                          type="text"
+                          value={t}
+                          onChange={e => {
+                            const next = [...quickMorningTasks];
+                            next[idx] = e.target.value;
+                            setQuickMorningTasks(next);
+                          }}
+                          className="flex-1 text-xs font-semibold text-slate-800 bg-transparent outline-none border-b border-dashed border-slate-300 focus:border-emerald-600 py-0.5 px-1"
+                        />
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleMoveMorningTaskUp(idx)}
+                            disabled={idx === 0}
+                            className="p-1 text-slate-500 hover:text-slate-800 disabled:opacity-30 rounded cursor-pointer"
+                            title="Di chuyển lên"
+                          >
+                            <ArrowUp size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveMorningTaskDown(idx)}
+                            disabled={idx === quickMorningTasks.length - 1}
+                            className="p-1 text-slate-500 hover:text-slate-800 disabled:opacity-30 rounded cursor-pointer"
+                            title="Di chuyển xuống"
+                          >
+                            <ArrowDown size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setQuickMorningTasks(prev => prev.filter((_, i) => i !== idx))}
+                            className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded cursor-pointer"
+                            title="Xóa công việc này"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Thêm mới nhiệm vụ sáng */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={quickNewMorningTask}
+                    onChange={e => setQuickNewMorningTask(e.target.value)}
+                    placeholder="Nhập nội dung công việc buổi sáng mới..."
+                    className="flex-1 p-2 bg-white border border-slate-300 rounded-xl text-xs outline-none focus:border-amber-500 font-medium"
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (quickNewMorningTask.trim()) {
+                          setQuickMorningTasks(prev => [...prev, quickNewMorningTask.trim()]);
+                          setQuickNewMorningTask('');
+                        }
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (quickNewMorningTask.trim()) {
+                        setQuickMorningTasks(prev => [...prev, quickNewMorningTask.trim()]);
+                        setQuickNewMorningTask('');
+                      }
+                    }}
+                    className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl cursor-pointer"
+                  >
+                    + Thêm
+                  </button>
+                </div>
+
+                {/* Thêm nhanh từ mẫu */}
+                <div className="pt-1">
+                  <span className="text-[11px] font-bold text-amber-800 block mb-1">Thêm nhanh từ danh mục mẫu:</span>
+                  <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                    {taskConfigs.map(tc => {
+                      const exists = quickMorningTasks.includes(tc.name);
+                      return (
+                        <button
+                          key={tc.id}
+                          type="button"
+                          onClick={() => {
+                            if (!exists) {
+                              setQuickMorningTasks(prev => [...prev, tc.name]);
+                            }
+                          }}
+                          disabled={exists}
+                          className={`text-[11px] px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
+                            exists
+                              ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                              : 'bg-white text-amber-900 border-amber-300 hover:bg-amber-100'
+                          }`}
+                        >
+                          + {tc.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* PHẦN 2: CÔNG VIỆC BUỔI CHIỀU */}
+              <div className="space-y-3 p-4 bg-indigo-50/70 border border-indigo-200 rounded-2xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">🌤️</span>
+                    <h4 className="font-black text-indigo-950 uppercase text-xs tracking-wider">
+                      Công việc buổi Chiều ({quickAfternoonTasks.length})
+                    </h4>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setQuickAfternoonTasks([...quickMorningTasks])}
+                    className="text-[11px] font-bold text-indigo-700 hover:underline bg-white px-2 py-0.5 rounded-md border border-indigo-200 cursor-pointer"
+                  >
+                    ⮑ Sao chép từ buổi Sáng
+                  </button>
+                </div>
+
+                {/* Danh sách nhiệm vụ chiều */}
+                <div className="space-y-1.5 max-h-48 overflow-y-auto bg-white p-2.5 rounded-xl border border-indigo-200">
+                  {quickAfternoonTasks.length === 0 ? (
+                    <p className="text-xs text-slate-400 italic py-2 text-center">Chưa có nhiệm vụ nào trong buổi chiều</p>
+                  ) : (
+                    quickAfternoonTasks.map((t, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5 p-1.5 bg-indigo-50/40 hover:bg-indigo-100/50 rounded-lg border border-indigo-200 transition-colors">
+                        <span className="text-xs font-black text-indigo-800 w-5 text-center shrink-0">{idx + 1}.</span>
+                        <input
+                          type="text"
+                          value={t}
+                          onChange={e => {
+                            const next = [...quickAfternoonTasks];
+                            next[idx] = e.target.value;
+                            setQuickAfternoonTasks(next);
+                          }}
+                          className="flex-1 text-xs font-semibold text-slate-800 bg-transparent outline-none border-b border-dashed border-slate-300 focus:border-emerald-600 py-0.5 px-1"
+                        />
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleMoveAfternoonTaskUp(idx)}
+                            disabled={idx === 0}
+                            className="p-1 text-slate-500 hover:text-slate-800 disabled:opacity-30 rounded cursor-pointer"
+                            title="Di chuyển lên"
+                          >
+                            <ArrowUp size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveAfternoonTaskDown(idx)}
+                            disabled={idx === quickAfternoonTasks.length - 1}
+                            className="p-1 text-slate-500 hover:text-slate-800 disabled:opacity-30 rounded cursor-pointer"
+                            title="Di chuyển xuống"
+                          >
+                            <ArrowDown size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setQuickAfternoonTasks(prev => prev.filter((_, i) => i !== idx))}
+                            className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded cursor-pointer"
+                            title="Xóa công việc này"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Thêm mới nhiệm vụ chiều */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={quickNewAfternoonTask}
+                    onChange={e => setQuickNewAfternoonTask(e.target.value)}
+                    placeholder="Nhập nội dung công việc buổi chiều mới..."
+                    className="flex-1 p-2 bg-white border border-slate-300 rounded-xl text-xs outline-none focus:border-indigo-500 font-medium"
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (quickNewAfternoonTask.trim()) {
+                          setQuickAfternoonTasks(prev => [...prev, quickNewAfternoonTask.trim()]);
+                          setQuickNewAfternoonTask('');
+                        }
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (quickNewAfternoonTask.trim()) {
+                        setQuickAfternoonTasks(prev => [...prev, quickNewAfternoonTask.trim()]);
+                        setQuickNewAfternoonTask('');
+                      }
+                    }}
+                    className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl cursor-pointer"
+                  >
+                    + Thêm
+                  </button>
+                </div>
+
+                {/* Thêm nhanh từ mẫu */}
+                <div className="pt-1">
+                  <span className="text-[11px] font-bold text-indigo-800 block mb-1">Thêm nhanh từ danh mục mẫu:</span>
+                  <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                    {taskConfigs.map(tc => {
+                      const exists = quickAfternoonTasks.includes(tc.name);
+                      return (
+                        <button
+                          key={tc.id}
+                          type="button"
+                          onClick={() => {
+                            if (!exists) {
+                              setQuickAfternoonTasks(prev => [...prev, tc.name]);
+                            }
+                          }}
+                          disabled={exists}
+                          className={`text-[11px] px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
+                            exists
+                              ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                              : 'bg-white text-indigo-900 border-indigo-300 hover:bg-indigo-100'
+                          }`}
+                        >
+                          + {tc.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* MODAL FOOTER */}
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setQuickEditSchedule(null)}
+                className="px-4 py-2.5 text-xs font-bold text-slate-600 bg-white border border-slate-300 rounded-xl hover:bg-slate-100 cursor-pointer"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveQuickEditTasks}
+                className="px-5 py-2.5 text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md flex items-center gap-2 cursor-pointer transition-colors"
+              >
+                <Save size={16} />
+                <span>Lưu thay đổi công việc</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4.6 MODAL XÁC NHẬN XÓA LỊCH CẢ TUẦN */}
+      {isDeleteWeekModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md p-6 space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center gap-3 text-rose-600">
+              <div className="w-12 h-12 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-600 shrink-0">
+                <Trash2 size={24} />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-base text-slate-900">Xác nhận xóa lịch cả tuần</h3>
+                <p className="text-xs text-slate-500">Xóa toàn bộ các ngày trực Đoàn trong tuần</p>
+              </div>
+            </div>
+
+            {weekFilterMode === 'range' && selectedFromWeek !== selectedToWeek ? (
+              <div className="space-y-3">
+                <p className="text-xs text-slate-700">
+                  Bạn đang xem khoảng <strong>Tuần {selectedFromWeek} đến Tuần {selectedToWeek}</strong>. Vui lòng chọn phạm vi muốn xóa:
+                </p>
+                <div className="space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs">
+                  <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-800">
+                    <input
+                      type="radio"
+                      name="deleteModeScope"
+                      checked={deleteModeScope === 'range'}
+                      onChange={() => setDeleteModeScope('range')}
+                      className="text-rose-600"
+                    />
+                    <span>Xóa toàn bộ khoảng tuần đang xem (Tuần {selectedFromWeek} đến Tuần {selectedToWeek})</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-800">
+                    <input
+                      type="radio"
+                      name="deleteModeScope"
+                      checked={deleteModeScope === 'single'}
+                      onChange={() => setDeleteModeScope('single')}
+                      className="text-rose-600"
+                    />
+                    <span>Chỉ xóa 1 tuần cụ thể:</span>
+                    {deleteModeScope === 'single' && (
+                      <select
+                        value={targetDeleteWeek}
+                        onChange={e => setTargetDeleteWeek(Number(e.target.value))}
+                        className="bg-white px-2 py-0.5 border border-slate-300 rounded font-black text-rose-700 outline-none"
+                      >
+                        {Array.from(
+                          { length: selectedToWeek - selectedFromWeek + 1 },
+                          (_, i) => selectedFromWeek + i
+                        ).map(w => (
+                          <option key={w} value={w}>
+                            Tuần {w}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </label>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Bạn có chắc chắn muốn xóa <strong>toàn bộ lịch trực Đoàn của Tuần {selectedFromWeek}</strong> ({selectedYear}) không?
+                Tất cả các ca trực trong tuần sẽ bị xóa sạch khỏi hệ thống.
+              </p>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsDeleteWeekModalOpen(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteWeek}
+                className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-black rounded-xl shadow-md cursor-pointer flex items-center gap-1.5"
+              >
+                <Trash2 size={15} />
+                <span>Xác nhận xóa cả tuần</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4.7 MODAL GHI NHẬN NỀN NẾP & VI PHẠM THEO CA TRỰC ĐOÀN */}
+      {isYouthRecordModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-[28px] shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 my-6">
+            <div className="p-5 border-b border-slate-100 bg-gradient-to-r from-blue-700 via-indigo-700 to-indigo-800 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-amber-300">
+                  <ShieldAlert size={22} />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base sm:text-lg">
+                    Ghi nhận nền nếp & vi phạm học sinh – Đoàn TN
+                  </h3>
+                  <p className="text-xs text-blue-100">
+                    Tuần {recordVioWeek} • {recordVioPeriod === 'Sáng' ? 'Buổi Sáng' : 'Buổi Chiều'} • Người trực: {recordVioInspector}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsYouthRecordModalOpen(false)}
+                className="p-1 rounded-full text-white/80 hover:text-white hover:bg-white/20 transition-colors cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-5 sm:p-6 space-y-4 max-h-[75vh] overflow-y-auto text-xs sm:text-sm">
+              {/* Row 1: Ngày, Buổi, Tuần */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    Ngày ghi nhận <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={recordVioDate}
+                    onChange={e => setRecordVioDate(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold outline-none text-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Buổi trực</label>
+                  <select
+                    value={recordVioPeriod}
+                    onChange={e => setRecordVioPeriod(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold outline-none cursor-pointer text-slate-900"
+                  >
+                    <option value="Sáng">Sáng</option>
+                    <option value="Chiều">Chiều</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Tuần học</label>
+                  <select
+                    value={recordVioWeek}
+                    onChange={e => setRecordVioWeek(Number(e.target.value))}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold outline-none cursor-pointer text-slate-900"
+                  >
+                    {allWeeks.map(w => (
+                      <option key={w.weekNumber} value={w.weekNumber}>
+                        {w.weekLabel}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Row 2: Chọn Lớp & Phạm vi đối tượng */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    Lớp vi phạm / kiểm tra <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={recordVioClassId}
+                    onChange={e => {
+                      setRecordVioClassId(e.target.value);
+                      const stus = studentsList.filter(s => s.classId === e.target.value);
+                      if (stus.length > 0) {
+                        setRecordVioStudentId(stus[0].id);
+                      }
+                    }}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-black text-blue-900 outline-none cursor-pointer"
+                  >
+                    {classesList.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} (Khối {c.grade})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Phạm vi đối tượng</label>
+                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setRecordVioTargetMode('single')}
+                      className={`py-1.5 rounded-lg transition-all ${
+                        recordVioTargetMode === 'single' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600'
+                      }`}
+                    >
+                      1 Học sinh
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRecordVioTargetMode('whole_class')}
+                      className={`py-1.5 rounded-lg transition-all ${
+                        recordVioTargetMode === 'whole_class' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600'
+                      }`}
+                    >
+                      Tập thể cả lớp
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 3: Chọn Học sinh (nếu 1 học sinh) */}
+              {recordVioTargetMode === 'single' ? (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    Học sinh vi phạm <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={recordVioStudentId}
+                    onChange={e => setRecordVioStudentId(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold outline-none cursor-pointer text-slate-900"
+                  >
+                    {studentsList
+                      .filter(s => !recordVioClassId || s.classId === recordVioClassId)
+                      .map(s => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} (Mã: {s.code || '—'})
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              ) : (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs font-bold">
+                  ⚠️ Lỗi này sẽ áp dụng trừ điểm thi đua trực tiếp cho cả tập thể lớp {classesList.find(c => c.id === recordVioClassId)?.name || ''}.
+                </div>
+              )}
+
+              {/* Row 4: Tiêu chí vi phạm & Điểm trừ */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    Tiêu chí vi phạm <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={recordVioCriterionId}
+                    onChange={e => {
+                      setRecordVioCriterionId(e.target.value);
+                      const found = criteriaList.find(c => c.id === e.target.value);
+                      if (found) setRecordVioMinusPoints(found.minusPoints);
+                    }}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold outline-none cursor-pointer text-slate-900"
+                  >
+                    {criteriaList.map(c => (
+                      <option key={c.id} value={c.id}>
+                        [{c.code}] {c.name} (-{c.minusPoints}đ • {c.severity})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    Điểm trừ áp dụng <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={recordVioMinusPoints}
+                    onChange={e => setRecordVioMinusPoints(Number(e.target.value))}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-black text-rose-600 text-center outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Row 5: Chi tiết mô tả & Địa điểm */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Nội dung chi tiết vi phạm</label>
+                <textarea
+                  rows={2}
+                  value={recordVioContent}
+                  onChange={e => setRecordVioContent(e.target.value)}
+                  placeholder="Mô tả cụ thể hành vi: đi học muộn 15p, không mặc đồng phục..."
+                  className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl outline-none text-slate-900 font-medium"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Địa điểm</label>
+                  <input
+                    type="text"
+                    value={recordVioLocation}
+                    onChange={e => setRecordVioLocation(e.target.value)}
+                    placeholder="Cổng trường, Lớp học, Sân trường..."
+                    className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl outline-none text-slate-900 font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Người ghi nhận (Trực ban)</label>
+                  <input
+                    type="text"
+                    value={recordVioInspector}
+                    onChange={e => setRecordVioInspector(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold outline-none text-slate-900"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 sm:p-5 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3">
+              <a
+                href="/youth-discipline"
+                className="text-xs font-bold text-blue-700 hover:text-blue-900 flex items-center gap-1 hover:underline"
+              >
+                <span>Xem sổ Nền nếp Đoàn TN</span>
+                <ExternalLink size={13} />
+              </a>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsYouthRecordModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 bg-white border border-slate-300 rounded-xl hover:bg-slate-100 cursor-pointer"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveDisciplineRecord}
+                  className="px-5 py-2 text-xs font-black text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md cursor-pointer flex items-center gap-1.5"
+                >
+                  <Check size={16} />
+                  <span>Lưu ghi nhận nền nếp</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -2,10 +2,13 @@ import React, { useRef, useState } from 'react';
 import { useAppContext } from '../store/AppContext';
 import { Badge } from '../components/ui/Badge';
 import Avatar from '../components/ui/Avatar';
-import { Search, Mail, Filter, Upload, Download, Trash2, UserPlus, Edit2, X, Users, Eye } from 'lucide-react';
+import { Search, Mail, Filter, Upload, Download, Trash2, UserPlus, Edit2, X, Users, Eye, FileDown, CheckCircle2 } from 'lucide-react';
 import { Teacher } from '../types';
 import * as XLSX from 'xlsx';
 import BackButton from '../components/ui/BackButton';
+import { exportTeacherExcelTemplate } from '../utils/teacherExcelTemplate';
+import { parseTeacherExcelFile, ParseExcelResult } from '../utils/teacherExcelParser';
+import TeacherImportModal from '../components/teachers/TeacherImportModal';
 
 export default function Teachers() {
   const { teachers, departments, deleteTeacher, deleteAllTeachers, updateTeacher, addTeacher, importTeachers } = useAppContext();
@@ -19,13 +22,25 @@ export default function Teachers() {
   const [deletingTeacher, setDeletingTeacher] = useState<Teacher | null>(null);
   const [isDeleteAllModalOpen, setIsDeleteAllModalOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<Teacher>>({});
+  const [importResult, setImportResult] = useState<ParseExcelResult | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 4000);
+  };
 
   const filteredTeachers = teachers.filter(t => {
     const nameStr = t.name || '';
     const codeStr = t.code || '';
     const matchesSearch = nameStr.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           codeStr.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDept = filterDept === 'All' || t.departmentId === filterDept;
+    const matchesDept = filterDept === 'All' 
+      ? true 
+      : filterDept === 'unassigned'
+        ? (!t.departmentId || !departments.some(d => d.id === t.departmentId))
+        : t.departmentId === filterDept;
     return matchesSearch && matchesDept;
   });
 
@@ -35,7 +50,7 @@ export default function Teachers() {
       'Mã GV': t.code,
       'Họ và tên': t.name,
       'Chức vụ': t.role,
-      'Tổ chuyên môn': departments.find(d => d.id === t.departmentId)?.name || '',
+      'Tổ chuyên môn': departments.find(d => d.id === t.departmentId)?.name || (t.role === 'BGH' || t.departmentId === 'd_bgh' ? 'Ban Giám hiệu' : 'Chưa phân tổ'),
       'Trạng thái': t.status,
       'Email': t.email || '',
       'Số điện thoại': t.phone || '',
@@ -68,77 +83,59 @@ export default function Teachers() {
     return role;
   };
 
-  const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSelectExcelFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const bstr = evt.target?.result;
-      const wb = XLSX.read(bstr, { type: 'binary' });
-      const wsname = wb.SheetNames[0];
-      const ws = wb.Sheets[wsname];
-      const data = XLSX.utils.sheet_to_json(ws);
-      const newTeachers = data.map((row: any) => {
-        const rawDept = getExcelValue(row, ['Tổ chuyên môn', 'To chuyen mon', 'Tổ', 'To', 'Department', 'Tổ bộ môn']) || '';
-        const normDept = String(rawDept).trim().toLowerCase();
-        
-        let deptId = departments[0]?.id || '';
-        const foundDept = departments.find(d => {
-          const dName = d.name.toLowerCase();
-          return dName.includes(normDept) || normDept.includes(dName) ||
-                 (normDept.includes('toán') && d.id === 'd_toan_ly_tin_cn') ||
-                 (normDept.includes('lý') && d.id === 'd_toan_ly_tin_cn') ||
-                 (normDept.includes('văn') && d.id === 'd_van_su_dia_gdkt_pt_an') ||
-                 (normDept.includes('hóa') && d.id === 'd_hoa_sinh_qpan_tc_nn') ||
-                 (normDept.includes('phòng') && d.id === 'd_van_phong');
-        });
-        if (foundDept) {
-          deptId = foundDept.id;
-        }
 
-        const rawCode = getExcelValue(row, ['Mã GV', 'Ma GV', 'Mã giáo viên', 'Ma giao vien', 'Code', 'Mã viên chức', 'Mã CBGVNV']);
-        const codeVal = (rawCode ? String(rawCode).trim() : '') || `GV${Math.floor(1000 + Math.random() * 9000)}`;
+    try {
+      const result = await parseTeacherExcelFile(file, departments, teachers);
+      if (!result.success) {
+        const errorMsg = result.errorMessage || 'Không thể đọc file Excel. Vui lòng kiểm tra file hoặc tải file mẫu mới.';
+        alert(errorMsg);
+        showToast(errorMsg);
+        return;
+      }
 
-        const rawName = getExcelValue(row, ['Họ và tên', 'Họ tên', 'Ho va ten', 'Ho ten', 'Tên', 'Ten', 'Name']);
-        const nameVal = rawName ? String(rawName).trim() : 'Chưa cập nhật';
+      setImportResult(result);
+      setIsImportModalOpen(true);
+    } catch (err: any) {
+      console.error('Lỗi khi phân tích file Excel:', err);
+      const errorMsg = 'Không thể đọc file Excel. Vui lòng kiểm tra file hoặc tải file mẫu mới.';
+      alert(errorMsg);
+      showToast(errorMsg);
+    }
+  };
 
-        const rawRole = getExcelValue(row, ['Chức vụ', 'Chuc vu', 'Role', 'Position']) || 'Giáo viên';
-        let roleEnum = 'GIAO_VIEN';
-        const normRole = String(rawRole).trim().toLowerCase();
-        if (normRole.includes('hiệu trưởng') || normRole.includes('hieu truong')) roleEnum = 'BGH';
-        else if (normRole.includes('phó hiệu trưởng') || normRole.includes('pho hieu truong')) roleEnum = 'BGH';
-        else if (normRole.includes('tổ trưởng') || normRole.includes('to truong')) roleEnum = 'TTCM';
-        else if (normRole.includes('tổ phó') || normRole.includes('to pho')) roleEnum = 'GIAO_VIEN'; // System maps it as regular user, but we'll store position below
-        else if (normRole.includes('nhân viên') || normRole.includes('nhan vien')) roleEnum = 'NHAN_VIEN';
+  const handleConfirmImport = async (teachersToImport: Teacher[], updateExisting: boolean) => {
+    await importTeachers(teachersToImport, updateExisting);
+    const count = teachersToImport.length;
+    const errorsCount = importResult ? importResult.invalidCount : 0;
+    const duplicateCount = importResult && !updateExisting ? importResult.duplicateCount : 0;
 
-        const rawStatus = getExcelValue(row, ['Trạng thái', 'Trang thai', 'Status']) || 'Đang công tác';
-        const statusVal = String(rawStatus).trim();
-
-        return {
-          id: Math.random().toString(36).substr(2, 9),
-          code: codeVal,
-          name: nameVal,
-          role: roleEnum as any,
-          position: (normRole.includes('tổ phó') || normRole.includes('to pho')) ? 'Tổ phó' : undefined,
-          departmentId: deptId,
-          status: (statusVal === 'Nghỉ phép' || statusVal === 'Đã nghỉ việc' ? statusVal : 'Đang công tác') as any,
-          email: getExcelValue(row, ['Email', 'Mail']) || '',
-          phone: getExcelValue(row, ['Số điện thoại', 'So dien thoai', 'SĐT', 'SDT', 'Phone']) || '',
-          subject: getExcelValue(row, ['Môn giảng dạy', 'Mon giang day', 'Môn', 'Mon', 'Subject']) || ''
-        } as Teacher;
-      });
-      importTeachers(newTeachers);
-    };
-    reader.readAsBinaryString(file);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    let msg = `Đã nhập thành công ${count} cán bộ, giáo viên, nhân viên.`;
+    if (errorsCount > 0 || duplicateCount > 0) {
+      const details: string[] = [];
+      if (duplicateCount > 0) details.push(`bỏ qua ${duplicateCount} dòng trùng mã`);
+      if (errorsCount > 0) details.push(`${errorsCount} dòng bị lỗi`);
+      msg += ` (${details.join(', ')})`;
+    }
+    showToast(msg);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const deptObj = departments.find(d => d.id === formData.departmentId);
+    const dataToSave = {
+      ...formData,
+      departmentName: deptObj ? deptObj.name : (formData.role === 'BGH' || formData.departmentId === 'd_bgh' ? 'Ban Giám hiệu' : '')
+    };
     if (editingTeacher) {
-      updateTeacher(editingTeacher.id, formData);
+      updateTeacher(editingTeacher.id, dataToSave);
     } else {
-      addTeacher(formData as Omit<Teacher, 'id'>);
+      addTeacher(dataToSave as Omit<Teacher, 'id'>);
     }
     setIsModalOpen(false);
   };
@@ -176,6 +173,14 @@ export default function Teachers() {
       <div className="flex items-center">
         <BackButton />
       </div>
+
+      {toastMessage && (
+        <div className="fixed top-6 right-6 z-50 bg-emerald-600 text-white font-bold px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-4 duration-300">
+          <CheckCircle2 className="w-5 h-5 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       <div className="bg-white/90 backdrop-blur-xl p-6 rounded-[20px] border border-white/40 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.05)] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
@@ -188,22 +193,33 @@ export default function Teachers() {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <button 
+            type="button"
             onClick={handleExportExcel}
-            className="inline-flex items-center justify-center px-4 py-2.5 border border-slate-300 rounded-xl shadow-sm text-[13px] font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors"
+            className="inline-flex items-center justify-center px-4 py-2.5 border border-slate-300 rounded-xl shadow-sm text-[13px] font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors cursor-pointer"
           >
             <Download className="mr-2 h-4 w-4" />
             Xuất dữ liệu
           </button>
+          <button 
+            type="button"
+            onClick={() => exportTeacherExcelTemplate(departments)}
+            title="Tải file Excel mẫu để nhập dữ liệu CBGVNV"
+            className="inline-flex items-center justify-center px-4 py-2.5 border border-slate-300 rounded-xl shadow-sm text-[13px] font-bold text-slate-700 bg-white hover:bg-slate-50 hover:text-emerald-700 hover:border-emerald-300 transition-colors cursor-pointer"
+          >
+            <FileDown className="mr-2 h-4 w-4 text-emerald-600" />
+            Xuất file mẫu
+          </button>
           <input 
             type="file" 
-            accept=".xlsx, .xls, .csv" 
+            accept=".xlsx, .xls, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" 
             className="hidden" 
             ref={fileInputRef}
-            onChange={handleImportExcel}
+            onChange={handleSelectExcelFile}
           />
           <button 
+            type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center justify-center px-4 py-2.5 border border-slate-300 rounded-xl shadow-sm text-[13px] font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors"
+            className="inline-flex items-center justify-center px-4 py-2.5 border border-slate-300 rounded-xl shadow-sm text-[13px] font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors cursor-pointer"
           >
             <Upload className="mr-2 h-4 w-4" />
             Nhập từ Excel
@@ -524,6 +540,17 @@ export default function Teachers() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* MODAL XÁC NHẬN NHẬP DỮ LIỆU TỪ EXCEL */}
+      {isImportModalOpen && importResult && (
+        <TeacherImportModal
+          isOpen={isImportModalOpen}
+          onClose={() => setIsImportModalOpen(false)}
+          parseResult={importResult}
+          onConfirmImport={handleConfirmImport}
+          existingTeachers={teachers}
+        />
       )}
     </div>
   );

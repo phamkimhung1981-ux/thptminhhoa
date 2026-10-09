@@ -117,7 +117,7 @@ export async function exportDutyScheduleToWord(
                 alignment: DocxAlignmentType.CENTER,
                 children: [
                   new DocxTextRun({
-                    text: (metadata.parentOrganizationName || 'ĐOÀN XÃ SƠN LƯƠNG').toUpperCase(),
+                    text: (metadata.parentOrganizationName || 'ĐOÀN XÃ MINH HÒA').toUpperCase(),
                     bold: false,
                     font: 'Times New Roman',
                     size: 24
@@ -128,7 +128,7 @@ export async function exportDutyScheduleToWord(
                 alignment: DocxAlignmentType.CENTER,
                 children: [
                   new DocxTextRun({
-                    text: (metadata.organizationName || 'ĐOÀN TRƯỜNG THPT SƠN LƯƠNG').toUpperCase(),
+                    text: (metadata.organizationName || 'ĐOÀN TRƯỜNG THPT MINH HÒA').toUpperCase(),
                     bold: true,
                     font: 'Times New Roman',
                     size: 24
@@ -157,7 +157,7 @@ export async function exportDutyScheduleToWord(
                 alignment: DocxAlignmentType.CENTER,
                 children: [
                   new DocxTextRun({
-                    text: metadata.locationDate || 'Sơn Lương, ngày 17 tháng 09 năm 2026',
+                    text: metadata.locationDate || 'Minh Hòa, ngày 17 tháng 09 năm 2026',
                     italics: true,
                     font: 'Times New Roman',
                     size: 24
@@ -181,7 +181,7 @@ export async function exportDutyScheduleToWord(
       alignment: DocxAlignmentType.CENTER,
       children: [
         new DocxTextRun({
-          text: 'LỊCH PHÂN CÔNG TRỰC ĐOÀN TRƯỜNG THPT SƠN LƯƠNG',
+          text: 'LỊCH PHÂN CÔNG TRỰC ĐOÀN TRƯỜNG THPT MINH HÒA',
           bold: true,
           font: 'Times New Roman',
           size: 28

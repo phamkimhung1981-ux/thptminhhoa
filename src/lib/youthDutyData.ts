@@ -33,10 +33,10 @@ export const DEFAULT_DUTY_TASKS: YouthDutyTaskConfig[] = [
 
 export const DEFAULT_DUTY_METADATA: YouthDutyMetadata = {
   academicYear: '2026–2027',
-  organizationName: 'ĐOÀN TRƯỜNG THPT SƠN LƯƠNG',
-  parentOrganizationName: 'ĐOÀN XÃ SƠN LƯƠNG',
+  organizationName: 'ĐOÀN TRƯỜNG THPT MINH HÒA',
+  parentOrganizationName: 'ĐOÀN XÃ MINH HÒA',
   unionTitle: 'ĐOÀN TNCS HỒ CHÍ MINH',
-  locationDate: 'Sơn Lương, ngày 17 tháng 09 năm 2026',
+  locationDate: 'Minh Hòa, ngày 17 tháng 09 năm 2026',
   secretaryName: 'Phan Thị Lan Phương',
   secretaryTitle: 'Bí Thư',
   partyCommitteeTitle: 'Xác nhận của Ban Chi Ủy'

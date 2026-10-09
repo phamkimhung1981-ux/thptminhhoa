@@ -228,6 +228,7 @@ export const youthDisciplineService = {
         console.error(err);
       }
     }
+    localStorage.setItem(CACHE_KEYS.CRITERIA, JSON.stringify(DEFAULT_YOUTH_CRITERIA));
     return DEFAULT_YOUTH_CRITERIA;
   },
 
@@ -255,20 +256,24 @@ export const youthDisciplineService = {
     try {
       await setDoc(doc(db, COLLECTIONS.CRITERIA, id), item, { merge: true });
     } catch (e) {
-      console.warn('Firestore saveCriterion error, saved locally:', e);
+      console.warn('Firestore saveCriterion warning (saved locally):', e);
     }
 
-    await this.addAuditLog({
-      action: isNew ? 'CREATE' : 'UPDATE',
-      entityType: 'CRITERION',
-      entityId: id,
-      performedBy: auth.currentUser?.uid || 'user',
-      performedByName: auth.currentUser?.displayName || 'Cán bộ Đoàn',
-      performedByRole: userRole,
-      timestamp: new Date().toISOString(),
-      summary: `${isNew ? 'Thêm mới' : 'Cập nhật'} tiêu chí nền nếp: [${item.code}] ${item.name} (-${item.minusPoints}đ)`,
-      newData: item
-    });
+    try {
+      await this.addAuditLog({
+        action: isNew ? 'CREATE' : 'UPDATE',
+        entityType: 'CRITERION',
+        entityId: id,
+        performedBy: auth.currentUser?.uid || 'user',
+        performedByName: auth.currentUser?.displayName || 'Cán bộ Đoàn',
+        performedByRole: userRole,
+        timestamp: new Date().toISOString(),
+        summary: `${isNew ? 'Thêm mới' : 'Cập nhật'} tiêu chí nền nếp: [${item.code}] ${item.name} (-${item.minusPoints}đ)`,
+        newData: item
+      });
+    } catch (logErr) {
+      console.warn('Audit log warning:', logErr);
+    }
   },
 
   async deleteCriterion(id: string, userRole: string = 'BI_THU_DOAN'): Promise<void> {
@@ -280,21 +285,25 @@ export const youthDisciplineService = {
     try {
       await deleteDoc(doc(db, COLLECTIONS.CRITERIA, id));
     } catch (e) {
-      console.warn('Firestore deleteCriterion error:', e);
+      console.warn('Firestore deleteCriterion warning (deleted locally):', e);
     }
 
     if (target) {
-      await this.addAuditLog({
-        action: 'DELETE',
-        entityType: 'CRITERION',
-        entityId: id,
-        performedBy: auth.currentUser?.uid || 'user',
-        performedByName: auth.currentUser?.displayName || 'Cán bộ Đoàn',
-        performedByRole: userRole,
-        timestamp: new Date().toISOString(),
-        summary: `Xóa tiêu chí nền nếp: [${target.code}] ${target.name}`,
-        previousData: target
-      });
+      try {
+        await this.addAuditLog({
+          action: 'DELETE',
+          entityType: 'CRITERION',
+          entityId: id,
+          performedBy: auth.currentUser?.uid || 'user',
+          performedByName: auth.currentUser?.displayName || 'Cán bộ Đoàn',
+          performedByRole: userRole,
+          timestamp: new Date().toISOString(),
+          summary: `Xóa tiêu chí nền nếp: [${target.code}] ${target.name}`,
+          previousData: target
+        });
+      } catch (logErr) {
+        console.warn('Audit log warning:', logErr);
+      }
     }
   },
 
@@ -418,20 +427,24 @@ export const youthDisciplineService = {
     try {
       await setDoc(doc(db, COLLECTIONS.VIOLATIONS, id), record, { merge: true });
     } catch (e) {
-      console.warn('Firestore saveViolation error, saved in cache:', e);
+      console.warn('Firestore saveViolation warning (saved locally):', e);
     }
 
-    await this.addAuditLog({
-      action: isNew ? 'CREATE' : 'UPDATE',
-      entityType: 'VIOLATION',
-      entityId: id,
-      performedBy: record.recordedBy || 'user',
-      performedByName: record.recordedByName || 'Cán bộ ghi nhận',
-      performedByRole,
-      timestamp: new Date().toISOString(),
-      summary: `${isNew ? 'Ghi nhận' : 'Cập nhật'} vi phạm nền nếp lớp ${record.className}: ${record.studentName} - ${record.criterionName} (-${record.minusPoints}đ)`,
-      newData: record
-    });
+    try {
+      await this.addAuditLog({
+        action: isNew ? 'CREATE' : 'UPDATE',
+        entityType: 'VIOLATION',
+        entityId: id,
+        performedBy: record.recordedBy || 'user',
+        performedByName: record.recordedByName || 'Cán bộ ghi nhận',
+        performedByRole,
+        timestamp: new Date().toISOString(),
+        summary: `${isNew ? 'Ghi nhận' : 'Cập nhật'} vi phạm nền nếp lớp ${record.className}: ${record.studentName} - ${record.criterionName} (-${record.minusPoints}đ)`,
+        newData: record
+      });
+    } catch (logErr) {
+      console.warn('Audit log warning:', logErr);
+    }
 
     return record;
   },
@@ -452,21 +465,25 @@ export const youthDisciplineService = {
     try {
       await deleteDoc(doc(db, COLLECTIONS.VIOLATIONS, id));
     } catch (e) {
-      console.warn('Firestore deleteViolation error:', e);
+      console.warn('Firestore deleteViolation warning (deleted locally):', e);
     }
 
     if (target) {
-      await this.addAuditLog({
-        action: 'DELETE',
-        entityType: 'VIOLATION',
-        entityId: id,
-        performedBy: auth.currentUser?.uid || 'user',
-        performedByName,
-        performedByRole,
-        timestamp: new Date().toISOString(),
-        summary: `Xóa bản ghi vi phạm lớp ${target.className}: ${target.studentName} - ${target.criterionName}`,
-        previousData: target
-      });
+      try {
+        await this.addAuditLog({
+          action: 'DELETE',
+          entityType: 'VIOLATION',
+          entityId: id,
+          performedBy: auth.currentUser?.uid || 'user',
+          performedByName,
+          performedByRole,
+          timestamp: new Date().toISOString(),
+          summary: `Xóa bản ghi vi phạm lớp ${target.className}: ${target.studentName} - ${target.criterionName}`,
+          previousData: target
+        });
+      } catch (logErr) {
+        console.warn('Audit log warning:', logErr);
+      }
     }
   },
 

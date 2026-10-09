@@ -49,7 +49,7 @@ export function exportYouthDisciplineToExcel(
 
   // Sheet 1: Tổng hợp thi đua nề nếp các lớp
   const summaryRows: any[][] = [
-    ['ĐOÀN TNCS HỒ CHÍ MINH - TRƯỜNG THPT SƠN LƯƠNG'],
+    ['ĐOÀN TNCS HỒ CHÍ MINH - TRƯỜNG THPT MINH HÒA'],
     [`BẢNG TỔNG HỢP THI ĐUA NỀN NẾP HỌC SINH - ${scopeTitle.toUpperCase()}`],
     [`Năm học: ${schoolYear}`],
     [],
@@ -354,7 +354,7 @@ export async function exportYouthDisciplineToWord(
             alignment: DocxAlignmentType.CENTER,
             children: [
               new DocxTextRun({
-                text: 'ĐOÀN TNCS HỒ CHÍ MINH TRƯỜNG THPT SƠN LƯƠNG',
+                text: 'ĐOÀN TNCS HỒ CHÍ MINH TRƯỜNG THPT MINH HÒA',
                 bold: true,
                 font: 'Times New Roman',
                 size: 22
@@ -407,7 +407,7 @@ export async function exportYouthDisciplineToWord(
             alignment: DocxAlignmentType.RIGHT,
             children: [
               new DocxTextRun({
-                text: 'Sơn Lương, ngày ..... tháng ..... năm 2026',
+                text: 'Minh Hòa, ngày ..... tháng ..... năm 2026',
                 italics: true,
                 font: 'Times New Roman',
                 size: 20
@@ -444,7 +444,7 @@ export function exportLateStudentsToExcel(
   const wb = XLSX.utils.book_new();
 
   const rows: any[][] = [
-    ['ĐOÀN TNCS HỒ CHÍ MINH - TRƯỜNG THPT SƠN LƯƠNG'],
+    ['ĐOÀN TNCS HỒ CHÍ MINH - TRƯỜNG THPT MINH HÒA'],
     [`DANH SÁCH HỌC SINH ĐI HỌC MUỘN - ${scopeTitle.toUpperCase()}`],
     [`Năm học: ${schoolYear} | Tổng số: ${lateList.length} lượt`],
     [],
@@ -690,7 +690,7 @@ export async function exportLateStudentsToWord(
             alignment: DocxAlignmentType.CENTER,
             children: [
               new DocxTextRun({
-                text: 'ĐOÀN TNCS HỒ CHÍ MINH - TRƯỜNG THPT SƠN LƯƠNG',
+                text: 'ĐOÀN TNCS HỒ CHÍ MINH - TRƯỜNG THPT MINH HÒA',
                 bold: true,
                 font: 'Times New Roman',
                 size: 20
@@ -732,7 +732,7 @@ export async function exportLateStudentsToWord(
             alignment: DocxAlignmentType.RIGHT,
             children: [
               new DocxTextRun({
-                text: 'Sơn Lương, ngày ..... tháng ..... năm 2026',
+                text: 'Minh Hòa, ngày ..... tháng ..... năm 2026',
                 italics: true,
                 font: 'Times New Roman',
                 size: 20

@@ -439,8 +439,12 @@ export default function KpiCbqlFormModal({
             </div>
             <div>
               <span className="text-slate-400 font-semibold block uppercase text-[10px]">Người đánh giá (Thủ trưởng)</span>
-              <span className="font-bold text-slate-800 text-sm">{form.evaluatorName}</span>
-              <span className="text-slate-500 block">{form.evaluatorPosition}</span>
+              <span className="font-bold text-slate-800 text-sm">
+                {form.evaluatorName?.includes('Quang Sáng') || form.evaluatorName?.includes('Kim Hùng') || form.evaluatorName?.includes('Anh Hòa')
+                  ? 'Trịnh Việt Phương'
+                  : (form.evaluatorName || 'Trịnh Việt Phương')}
+              </span>
+              <span className="text-slate-500 block">{form.evaluatorPosition || 'Hiệu trưởng'}</span>
             </div>
             <div>
               <span className="text-slate-400 font-semibold block uppercase text-[10px]">Xếp loại chất lượng</span>

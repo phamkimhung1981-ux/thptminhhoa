@@ -221,7 +221,7 @@ export function calculateRecordScoreStrict(
 /**
  * Xuất danh sách đánh giá viên chức theo tháng ra file Excel chuẩn
  * Đúng yêu cầu 4.A:
- * - Tiêu đề: TRƯỜNG THPT SƠN LƯƠNG - PHIẾU ĐÁNH GIÁ VIÊN CHỨC
+ * - Tiêu đề: TRƯỜNG THPT MINH HÒA - PHIẾU ĐÁNH GIÁ VIÊN CHỨC
  * - Tháng/năm
  * - Danh sách CBGVNV
  * - Các tiêu chí
@@ -249,7 +249,7 @@ export function exportMonthlyEvaluationExcel(
 
   // Tiêu đề đầu trang chuẩn thể thức
   rows.push(['SỞ GIÁO DỤC VÀ ĐÀO TẠO TỈNH LÀO CAI']);
-  rows.push(['TRƯỜNG THPT SƠN LƯƠNG']);
+  rows.push(['TRƯỜNG THPT MINH HÒA']);
   rows.push([]);
   rows.push(['PHIẾU ĐÁNH GIÁ VIÊN CHỨC']);
   
@@ -491,7 +491,7 @@ export function exportSingleEvaluationDetailToExcel(
   const rows: any[] = [];
 
   rows.push(['SỞ GIÁO DỤC VÀ ĐÀO TẠO TỈNH LÀO CAI']);
-  rows.push(['TRƯỜNG THPT SƠN LƯƠNG']);
+  rows.push(['TRƯỜNG THPT MINH HÒA']);
   rows.push([]);
   rows.push(['PHIẾU ĐÁNH GIÁ VIÊN CHỨC']);
   rows.push([`Tháng: ${record.term} - Năm học: ${record.year}`]);

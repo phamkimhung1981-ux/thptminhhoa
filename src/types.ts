@@ -34,6 +34,8 @@ export interface Department {
   id: string;
   name: string;
   headId: string;
+  description?: string;
+  shortName?: string;
 }
 
 export interface SchoolStats {
@@ -208,7 +210,7 @@ export interface GeneralKpi {
   updatedAt?: string;
 }
 
-// 4 ĐỐI TƯỢNG ĐÁNH GIÁ KPI CHUẨN CỦA TRƯỜNG THPT SƠN LƯƠNG
+// 4 ĐỐI TƯỢNG ĐÁNH GIÁ KPI CHUẨN CỦA TRƯỜNG THPT MINH HÒA
 export type KpiTargetCode = 'CBQL' | 'TTCM_TPCM' | 'GV' | 'NV';
 
 export interface KpiGroup {

@@ -301,7 +301,7 @@ export default function KpiStaffFormModal({
               <span>A. KPI CHUNG – 30 ĐIỂM (Áp dụng cho tất cả nhân viên)</span>
               <div className="flex items-center gap-3">
                 <span>Tự chấm: <strong>{formData.generalTotalSelf}</strong></span>
-                <span>TTCM: <strong>{formData.generalTotalTtcm ?? '---'}</strong></span>
+                <span>Tổ trưởng: <strong>{formData.generalTotalTtcm ?? '---'}</strong></span>
                 <span>BGH: <strong>{formData.generalTotalManager ?? '---'}</strong></span>
               </div>
             </div>
@@ -313,7 +313,7 @@ export default function KpiStaffFormModal({
                   <th className="p-3">Nội dung đánh giá / nhiệm vụ</th>
                   <th className="p-3 w-20 text-center">Tối đa</th>
                   <th className="p-3 w-24 text-center bg-blue-50/70 text-blue-950">Cá nhân tự chấm</th>
-                  <th className="p-3 w-24 text-center bg-purple-50/70 text-purple-950">TTCM đánh giá</th>
+                  <th className="p-3 w-24 text-center bg-purple-50/70 text-purple-950">Tổ trưởng đánh giá</th>
                   <th className="p-3 w-24 text-center bg-amber-50/70 text-amber-950">BGH đánh giá</th>
                   <th className="p-3 min-w-[140px]">Minh chứng / ghi chú</th>
                 </tr>
@@ -391,7 +391,7 @@ export default function KpiStaffFormModal({
               <span>{posConfig.title}</span>
               <div className="flex items-center gap-3">
                 <span>Tự chấm: <strong>{formData.positionTotalSelf}</strong></span>
-                <span>TTCM: <strong>{formData.positionTotalTtcm ?? '---'}</strong></span>
+                <span>Tổ trưởng: <strong>{formData.positionTotalTtcm ?? '---'}</strong></span>
                 <span>BGH: <strong>{formData.positionTotalManager ?? '---'}</strong></span>
               </div>
             </div>
@@ -404,7 +404,7 @@ export default function KpiStaffFormModal({
                   <th className="p-3">Nhiệm vụ cụ thể</th>
                   <th className="p-3 w-20 text-center">Tối đa</th>
                   <th className="p-3 w-24 text-center bg-blue-50/70 text-blue-950">Cá nhân tự chấm</th>
-                  <th className="p-3 w-24 text-center bg-purple-50/70 text-purple-950">TTCM đánh giá</th>
+                  <th className="p-3 w-24 text-center bg-purple-50/70 text-purple-950">Tổ trưởng đánh giá</th>
                   <th className="p-3 w-24 text-center bg-amber-50/70 text-amber-950">BGH đánh giá</th>
                   <th className="p-3 min-w-[140px]">Minh chứng / ghi chú</th>
                 </tr>
@@ -493,7 +493,7 @@ export default function KpiStaffFormModal({
                 <span className="text-blue-900 font-bold">{formData.totalScore} / 100 điểm</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span>2. Tổ trưởng chuyên môn chấm (TTCM):</span>
+                <span>2. Tổ trưởng đánh giá:</span>
                 <span className="text-purple-900 font-bold">{formData.ttcmTotalScore !== null && formData.ttcmTotalScore !== undefined ? `${formData.ttcmTotalScore} / 100 điểm` : '---'}</span>
               </div>
               <div className="flex justify-between text-xs">

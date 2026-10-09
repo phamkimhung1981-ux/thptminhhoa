@@ -25,10 +25,15 @@ interface TaskEvaluationModalProps {
 }
 
 const PRESET_DEPT_TOKENS = [
-  { groupToken: 'GROUP_TOAN_LY_TIN_CN', deptId: 'd_toan_ly_tin_cn', subjects: ['toán', 'vật lý', 'tin học', 'công nghệ'] },
-  { groupToken: 'GROUP_HOA_LY_SINH_GDQPAN_NN', deptId: 'd_hoa_ly_sinh_gdqpan_nn', subjects: ['hóa', 'sinh', 'qpan', 'tiếng anh', 'ngoại ngữ', 'thể dục'] },
-  { groupToken: 'GROUP_VAN_SU_DIA_GDKT_PL_AN', deptId: 'd_van_su_dia_gdkt_pl_an', subjects: ['văn', 'sử', 'địa', 'gdkt', 'âm nhạc', 'mĩ thuật'] },
-  { groupToken: 'GROUP_VAN_PHONG', deptId: 'd_van_phong', subjects: ['văn thư', 'kế toán', 'thủ quỹ', 'y tế', 'thiết bị', 'thư viện'] },
+  { groupToken: 'GROUP_TOAN_CONG_NGHE', deptId: 'd_toan_cong_nghe', subjects: ['toán', 'công nghệ'] },
+  { groupToken: 'GROUP_VAN_SU_DIA_GDKT', deptId: 'd_van_su_dia_gdkt', subjects: ['văn', 'sử', 'địa', 'gdkt', 'âm nhạc', 'mĩ thuật', 'mỹ thuật'] },
+  { groupToken: 'GROUP_LY_HOA_SINH', deptId: 'd_ly_hoa_sinh', subjects: ['vật lý', 'vật lí', 'hóa', 'sinh'] },
+  { groupToken: 'GROUP_NGOAI_NGU_TIN_HOC_GDTC_GDQPAN', deptId: 'd_ngoai_ngu_tin_hoc_gdtc_gdqpan', subjects: ['tiếng anh', 'ngoại ngữ', 'tin học', 'tin', 'thể dục', 'gdtc', 'gdqp', 'qpan'] },
+  { groupToken: 'GROUP_VAN_PHONG', deptId: 'd_van_phong', subjects: ['văn thư', 'kế toán', 'thủ quỹ', 'y tế', 'thiết bị', 'thư viện', 'hành chính'] },
+  // Backward compatibility tokens
+  { groupToken: 'GROUP_TOAN_LY_TIN_CN', deptId: 'd_toan_cong_nghe', subjects: ['toán', 'công nghệ'] },
+  { groupToken: 'GROUP_HOA_LY_SINH_GDQPAN_NN', deptId: 'd_ly_hoa_sinh', subjects: ['hóa', 'sinh'] },
+  { groupToken: 'GROUP_VAN_SU_DIA_GDKT_PL_AN', deptId: 'd_van_su_dia_gdkt', subjects: ['văn', 'sử', 'địa', 'gdkt'] },
 ];
 
 export default function TaskEvaluationModal({ assignment, initialAssigneeId, onClose, onSave }: TaskEvaluationModalProps) {

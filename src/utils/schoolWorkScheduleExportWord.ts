@@ -261,12 +261,12 @@ export async function exportSchoolWorkScheduleToWord(schedule: SchoolWorkSchedul
           }
         },
         children: [
-          // Header: TRƯỜNG THPT SƠN LƯƠNG
+          // Header: TRƯỜNG THPT MINH HÒA
           new DocxParagraph({
             alignment: DocxAlignmentType.LEFT,
             children: [
               new DocxTextRun({
-                text: 'TRƯỜNG THPT SƠN LƯƠNG',
+                text: 'TRƯỜNG THPT MINH HÒA',
                 bold: true,
                 font: 'Times New Roman',
                 size: 24

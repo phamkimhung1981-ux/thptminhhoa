@@ -301,12 +301,12 @@ export default function ImageOcrModal({
         afternoon_events: [
           { id: `ev_a_${i}_${Date.now()}`, text: '', confidence: 1.0, highlight: 'normal' }
         ],
-        duty_leader: 'Ông Sáng'
+        duty_leader: 'Thầy Phương'
       })),
       footer: {
         working_time: 'Thời gian làm việc: Sáng từ 7h00 - 11h30; Chiều từ 13h30 - 17h00',
         recipients: '- BGH;\n- Niêm yết bảng tin;\n- Lưu VT.',
-        principal_name: 'Nguyễn Quang Sáng'
+        principal_name: 'Trịnh Việt Phương'
       },
       original_images: images.map(img => img.base64),
       created_at: new Date().toISOString()
@@ -409,7 +409,7 @@ export default function ImageOcrModal({
         // Group morning & afternoon events
         const morning_events: ScheduleEvent[] = [];
         const afternoon_events: ScheduleEvent[] = [];
-        let duty_leader = 'Ông Sáng';
+        let duty_leader = 'Thầy Phương';
 
         dayItems.forEach((item: any, itemIdx: number) => {
           const timeStr = String(item.time || '').toLowerCase();
@@ -418,7 +418,7 @@ export default function ImageOcrModal({
 
           // Check for Leader Duty
           if (contentStr.toLowerCase().includes('trực lđ') || contentStr.toLowerCase().includes('trực lãnh đạo')) {
-            duty_leader = item.person_in_charge || 'Ông Sáng';
+            duty_leader = item.person_in_charge || 'Thầy Phương';
           }
 
           // Build elegant readable text preserving all columns details
@@ -492,7 +492,7 @@ export default function ImageOcrModal({
         footer: {
           working_time: 'Thời gian làm việc: Sáng từ 7h00 - 11h30; Chiều từ 13h30 - 17h00',
           recipients: '- BGH;\n- Niêm yết bảng tin;\n- Lưu VT.',
-          principal_name: 'Nguyễn Quang Sáng'
+          principal_name: 'Trịnh Việt Phương'
         },
         original_images: images.map(img => img.url),
         created_at: new Date().toISOString()

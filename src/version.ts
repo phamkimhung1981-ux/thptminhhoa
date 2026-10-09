@@ -49,7 +49,7 @@ export const RELEASE_HISTORY: SystemRelease[] = [
     title: 'Bổ sung module Lịch công việc trường & tính năng Tải file từ Word',
     modulesModified: ['Lịch công việc trường', 'Thanh điều hướng', 'Giao diện bảng'],
     changes: [
-      'Tạo module Lịch công việc trường THPT Sơn Lương (/school-work-schedule) đúng 5 cột theo file mẫu.',
+      'Tạo module Lịch công việc trường THPT Minh Hòa (/school-work-schedule) đúng 5 cột theo file mẫu.',
       'Kẻ viền ô rõ nét, tương phản cao, hỗ trợ Lãnh đạo nhập nhận xét và đánh giá trực tiếp.',
       'Tích hợp tính năng Tải file từ Word (.docx) và Xuất Word/Excel chuẩn văn bản.',
       'Cấu hình vercel.json chống cache stale và hỗ trợ SPA routing cho production.'
@@ -68,7 +68,7 @@ export const RELEASE_HISTORY: SystemRelease[] = [
   {
     version: 'v1.0.0',
     releaseDate: '2026-09-20',
-    title: 'Khởi tạo Hệ thống Quản lý Giáo viên THPT Sơn Lương',
+    title: 'Khởi tạo Hệ thống Quản lý Giáo viên THPT Minh Hòa',
     modulesModified: ['Toàn bộ hệ thống'],
     changes: [
       'Quản lý danh sách CBGVNV, phân quyền BGH, TTCM, Giáo viên, Nhân viên.',

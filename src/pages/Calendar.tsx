@@ -57,7 +57,7 @@ import WeeklyScheduleView from '../components/schedule/WeeklyScheduleView';
 import ErrorBoundary from '../components/ui/ErrorBoundary';
 import { exportScheduleToWord } from '../components/schedule/WordExportUtil';
 
-const STORAGE_SELECTED_WEEK_KEY = 'thpt_son_luong_selected_week_id';
+const STORAGE_SELECTED_WEEK_KEY = 'thpt_minh_hoa_selected_week_id';
 
 export default function Calendar() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -225,20 +225,21 @@ export default function Calendar() {
   };
 
   // Safe delete handler with confirmation modal
-  const handleConfirmDeleteSchedule = async () => {
-    if (!scheduleToDelete) return;
+  const handleDeleteWeeklyScheduleById = async (idToDelete: string) => {
+    const target = weeklySchedules.find(s => s.id === idToDelete || s.weekId === idToDelete) || scheduleToDelete;
+    if (!target) return;
 
-    const idToDelete = scheduleToDelete.id;
-    const weekNumber = scheduleToDelete.week_number;
+    const actualId = target.id;
+    const weekNumber = target.week_number;
 
     // Close modal
     setScheduleToDelete(null);
 
     // Optimistically update
-    const nextList = weeklySchedules.filter(s => s.id !== idToDelete && s.weekId !== idToDelete);
+    const nextList = weeklySchedules.filter(s => s.id !== actualId && s.weekId !== actualId);
     setWeeklySchedules(nextList);
 
-    if (selectedScheduleId === idToDelete) {
+    if (selectedScheduleId === actualId) {
       const remaining = nextList.length > 0 ? nextList[nextList.length - 1] : null;
       setSelectedScheduleId(remaining ? remaining.id : null);
       if (remaining) {
@@ -249,7 +250,7 @@ export default function Calendar() {
     }
 
     try {
-      await scheduleService.deleteWeeklySchedule(idToDelete);
+      await scheduleService.deleteWeeklySchedule(actualId);
       showToast(`Đã xóa Tuần ${weekNumber} và toàn bộ lịch công tác thành công.`, 'success');
     } catch (err) {
       console.error('Error deleting weekly schedule:', err);
@@ -257,6 +258,11 @@ export default function Calendar() {
       // Reload on failure
       loadWeeklySchedules();
     }
+  };
+
+  const handleConfirmDeleteSchedule = async () => {
+    if (!scheduleToDelete) return;
+    await handleDeleteWeeklyScheduleById(scheduleToDelete.id);
   };
 
   // Helper to check if a schedule has events
@@ -400,7 +406,7 @@ export default function Calendar() {
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs no-print">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <span>LỊCH CÔNG TÁC TRƯỜNG THPT SƠN LƯƠNG</span>
+            <span>LỊCH CÔNG TÁC TRƯỜNG THPT MINH HÒA</span>
           </h1>
           <p className="text-xs text-slate-500 mt-1">
             Quản lý lịch tuần hành chính, nhận diện AI từ hình ảnh và phân công trực lãnh đạo
@@ -492,7 +498,7 @@ export default function Calendar() {
           )}
         >
           <FileText size={16} />
-          <span>Lịch công tác tuần THPT Sơn Lương ({weeklySchedules.length})</span>
+          <span>Lịch công tác tuần THPT Minh Hòa ({weeklySchedules.length})</span>
         </button>
 
         <button
@@ -656,12 +662,7 @@ export default function Calendar() {
               <WeeklyScheduleView
                 schedule={activeWeeklySchedule}
                 onUpdateSchedule={handleSaveWeeklySchedule}
-                onDeleteSchedule={async id => {
-                  const target = weeklySchedules.find(s => s.id === id);
-                  if (target) {
-                    setScheduleToDelete(target);
-                  }
-                }}
+                onDeleteSchedule={handleDeleteWeeklyScheduleById}
                 onTriggerOcr={() => setIsOcrModalOpen(true)}
               />
             </ErrorBoundary>

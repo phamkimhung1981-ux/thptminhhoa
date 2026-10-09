@@ -88,7 +88,7 @@ export default function KpiCbqlDocumentModal({
   // All available personnel with optional admin/BGH user inclusion
   const allSelectableTeachers = useMemo(() => {
     let list = [...teachers];
-    if (user && (user.role === 'BGH' || user.id === 'admin') && !list.some(t => t.id === user.id)) {
+    if (user && (user.role === 'BGH' || user.id === 'admin') && !list.some(t => t.id === user.id) && !isExcludedCbqlEvaluator(user as any)) {
       list.unshift({
         id: user.id,
         name: user.name || 'Ban Giám hiệu (Admin)',
@@ -99,7 +99,7 @@ export default function KpiCbqlDocumentModal({
         code: 'BGH_ADMIN',
         subject: 'Quản lý',
         phone: '',
-        email: '',
+        email: user.email || '',
         joinDate: '2020-09-01',
         degree: 'Thạc sĩ Quản lý Giáo dục',
         status: 'Đang công tác'
@@ -245,8 +245,16 @@ export default function KpiCbqlDocumentModal({
     ? (selectedPeriod?.academicYear || '2026-2027')
     : (initialForm?.academicYear || '2026-2027');
 
-  const selectedEvaluator = allSelectableTeachers.find(t => t.id === selectedEvaluatorId) || {
-    name: initialForm?.evaluatorName || 'Hiệu trưởng / Ban Giám hiệu',
+  const resolvedInitialEvaluatorName = (() => {
+    const raw = initialForm?.evaluatorName || '';
+    if (!raw || isExcludedCbqlEvaluator({ name: raw } as any)) {
+      return 'Trịnh Việt Phương';
+    }
+    return raw;
+  })();
+
+  const selectedEvaluator = allSelectableTeachers.find(t => t.id === selectedEvaluatorId && !isExcludedCbqlEvaluator(t)) || {
+    name: resolvedInitialEvaluatorName,
     position: initialForm?.evaluatorPosition || 'Hiệu trưởng / Thủ trưởng đơn vị',
     avatar: null
   };
@@ -789,7 +797,9 @@ export default function KpiCbqlDocumentModal({
                       className="px-2.5 py-1 text-xs font-semibold bg-white border border-slate-300 rounded-md focus:ring-1 focus:ring-blue-500"
                     >
                       <option value="">-- Chọn cán bộ quản lý đánh giá --</option>
-                      {eligibleEvaluators.map(e => (
+                      {eligibleEvaluators
+                        .filter(e => !isExcludedCbqlEvaluator(e))
+                        .map(e => (
                         <option key={e.id} value={e.id}>
                           {e.name} ({e.position || 'Thủ trưởng'})
                         </option>

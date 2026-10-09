@@ -30,7 +30,7 @@ export function exportWeeklyTasksToExcel(options: ExportExcelOptions) {
 
   // Header info rows
   const excelRows: any[] = [];
-  excelRows.push(['SỞ GD&ĐT PHÚ THỌ - TRƯỜNG THPT SƠN LƯƠNG']);
+  excelRows.push(['SỞ GD&ĐT PHÚ THỌ - TRƯỜNG THPT MINH HÒA']);
   excelRows.push([`BẢNG TỔNG HỢP GIAO VIỆC TUẦN ${weekNumber}`]);
   excelRows.push([`Thời gian: Từ ngày ${startDateStr} đến ngày ${endDateStr} | Phạm vi: ${scopeTitle}`]);
   excelRows.push([]); // Empty line
@@ -93,6 +93,6 @@ export function exportWeeklyTasksToExcel(options: ExportExcelOptions) {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, `Tuan_${weekNumber}`);
 
-  const fileName = `Bang_Giao_Viec_Tuan_${weekNumber}_THPT_Son_Luong.xlsx`;
+  const fileName = `Bang_Giao_Viec_Tuan_${weekNumber}_THPT_Minh_Hoa.xlsx`;
   XLSX.writeFile(wb, fileName);
 }

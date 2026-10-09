@@ -155,7 +155,7 @@ export const homeroomService = {
       if (ratingSnap.empty) {
         const defaultRatingConfig: EvaluationRatingConfig = {
           id: 'rating_config_default_2026_2027',
-          school_id: 'thpt_son_luong',
+          school_id: 'thpt_minh_hoa',
           name: 'Cấu hình xếp loại rèn luyện chuẩn (2026–2027)',
           school_year: '2026–2027',
           evaluation_period_type: 'all',
@@ -1694,7 +1694,7 @@ export const homeroomService = {
 
     const payload: EvaluationRatingConfig = {
       id: configId,
-      school_id: 'thpt_son_luong',
+      school_id: 'thpt_minh_hoa',
       name: `Cấu hình xếp loại rèn luyện (${schoolYear})`,
       school_year: schoolYear,
       evaluation_period_type: periodType,

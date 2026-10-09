@@ -10,9 +10,12 @@ import {
   orderBy,
   where
 } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, cleanFirestoreData } from '../lib/firebase';
 import { DepartmentWeeklySchedule, DepartmentScheduleDayItem } from '../types/departmentSchedule';
 import { getWeekInfoByNumber, getCurrentSchoolWeekInfo, getWeekDayDates, WeekDayDateItem } from '../utils/schoolWeekUtils';
+import { User } from '../types';
+import { checkCanDeleteScheduleTask, checkCanDeleteEntireWeek } from '../utils/schedulePermissions';
+import { scheduleAuditService } from './scheduleAuditService';
 
 const COLLECTION_NAME = 'department_weekly_schedules';
 const LOCAL_STORAGE_KEY = 'school_department_weekly_schedules';
@@ -194,16 +197,25 @@ export const departmentScheduleService = {
     // 2. Persist to Firestore
     try {
       const docRef = doc(db, COLLECTION_NAME, normalized.id);
-      await setDoc(docRef, dataToSave, { merge: true });
+      await setDoc(docRef, cleanFirestoreData(dataToSave), { merge: true });
     } catch (error) {
-      console.error('Error saving schedule to Firestore (saved to localStorage cache):', error);
+      console.error('Error saving schedule to Firestore:', error);
+      throw error;
     }
   },
 
   /**
    * Delete schedule
    */
-  async deleteSchedule(id: string): Promise<void> {
+  async deleteSchedule(id: string, user?: User | null): Promise<void> {
+    const schedule = await this.getScheduleById(id);
+    if (schedule && user) {
+      const perm = checkCanDeleteScheduleTask(user, 'department', schedule.departmentId, false);
+      if (!perm.canDelete) {
+        throw new Error(`403 Forbidden: ${perm.reason || 'Bạn không có quyền xóa lịch của tổ này.'}`);
+      }
+    }
+
     const localList = this.getLocalSchedules().filter((s) => s.id !== id);
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(localList));
 
@@ -212,7 +224,129 @@ export const departmentScheduleService = {
       await deleteDoc(docRef);
     } catch (error) {
       console.error('Error deleting schedule from Firestore:', error);
+      throw error;
     }
+
+    if (schedule && user) {
+      try {
+        await scheduleAuditService.logDeletion({
+          action: 'delete_week',
+          actionLabel: `Xóa lịch tuần ${schedule.weekNumber} (${schedule.departmentName})`,
+          userName: user.name || 'Chưa xác định',
+          userAccount: user.username || user.id,
+          userRole: user.role || user.position || 'N/A',
+          scheduleId: id,
+          taskContent: `Xóa toàn bộ bản ghi lịch Tuần ${schedule.weekNumber} của ${schedule.departmentName}`,
+          department: schedule.departmentName,
+          scope: 'Tổ chuyên môn',
+          hasEvaluation: false,
+          result: 'Thành công'
+        });
+      } catch (e) {}
+    }
+  },
+
+  /**
+   * Xóa công việc của một buổi hoặc cả ngày trong lịch tổ chuyên môn
+   */
+  async deleteDayTasks(
+    schedule: DepartmentWeeklySchedule,
+    dateIso: string,
+    slot: 'morning' | 'afternoon' | 'all',
+    user: User | null
+  ): Promise<DepartmentWeeklySchedule> {
+    const perm = checkCanDeleteScheduleTask(user, 'department', schedule.departmentId, false);
+    if (!perm.canDelete) {
+      throw new Error(`403 Forbidden: ${perm.reason || 'Bạn không có quyền xóa lịch của tổ này.'}`);
+    }
+
+    const targetDay = schedule.days?.find(d => d.date === dateIso);
+    const dayName = targetDay?.dayOfWeek || dateIso;
+    const oldContent = slot === 'morning' ? targetDay?.morningTasks : slot === 'afternoon' ? targetDay?.afternoonTasks : `${targetDay?.morningTasks || ''} ${targetDay?.afternoonTasks || ''}`;
+
+    const newDays = schedule.days?.map(d => {
+      if (d.date !== dateIso) return d;
+      return {
+        ...d,
+        morningTasks: slot === 'all' || slot === 'morning' ? '' : d.morningTasks,
+        afternoonTasks: slot === 'all' || slot === 'afternoon' ? '' : d.afternoonTasks,
+        ...(slot === 'all' ? { dutyLeaderOrEvaluation: '' } : {})
+      };
+    }) || [];
+
+    const updated: DepartmentWeeklySchedule = {
+      ...schedule,
+      days: newDays,
+      updatedAt: new Date().toISOString()
+    };
+
+    await this.saveSchedule(updated);
+
+    try {
+      await scheduleAuditService.logDeletion({
+        action: 'delete_single',
+        actionLabel: `Xóa nội dung ${slot === 'morning' ? 'Sáng' : slot === 'afternoon' ? 'Chiều' : 'Cả ngày'} (${dayName})`,
+        userName: user?.name || 'Chưa xác định',
+        userAccount: user?.username || user?.id || 'unknown',
+        userRole: user?.role || user?.position || 'N/A',
+        scheduleId: schedule.id,
+        taskContent: oldContent || `Xóa nội dung công việc ${dayName}`,
+        taskDate: dateIso,
+        department: schedule.departmentName,
+        scope: 'Tổ chuyên môn',
+        hasEvaluation: Boolean(targetDay?.dutyLeaderOrEvaluation),
+        result: 'Thành công'
+      });
+    } catch (e) {}
+
+    return updated;
+  },
+
+  /**
+   * Xóa toàn bộ công việc cả tuần của tổ chuyên môn
+   */
+  async deleteEntireDepartmentWeek(
+    schedule: DepartmentWeeklySchedule,
+    user: User | null
+  ): Promise<DepartmentWeeklySchedule> {
+    const perm = checkCanDeleteScheduleTask(user, 'department', schedule.departmentId, false);
+    if (!perm.canDelete) {
+      throw new Error(`403 Forbidden: ${perm.reason || 'Bạn không có quyền xóa lịch của tổ này.'}`);
+    }
+
+    const newDays = schedule.days?.map(d => ({
+      ...d,
+      morningTasks: '',
+      afternoonTasks: '',
+      dutyLeaderOrEvaluation: '',
+      notes: ''
+    })) || [];
+
+    const updated: DepartmentWeeklySchedule = {
+      ...schedule,
+      days: newDays,
+      updatedAt: new Date().toISOString()
+    };
+
+    await this.saveSchedule(updated);
+
+    try {
+      await scheduleAuditService.logDeletion({
+        action: 'delete_week',
+        actionLabel: `Xóa toàn bộ lịch Tuần ${schedule.weekNumber} của ${schedule.departmentName}`,
+        userName: user?.name || 'Chưa xác định',
+        userAccount: user?.username || user?.id || 'unknown',
+        userRole: user?.role || user?.position || 'N/A',
+        scheduleId: schedule.id,
+        taskContent: `Xóa toàn bộ lịch Tuần ${schedule.weekNumber} của ${schedule.departmentName}`,
+        department: schedule.departmentName,
+        scope: 'Tổ chuyên môn',
+        hasEvaluation: true,
+        result: 'Thành công'
+      });
+    } catch (e) {}
+
+    return updated;
   },
 
   /**
@@ -298,7 +432,7 @@ export const departmentScheduleService = {
 
     return {
       id: `dept_sched_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      schoolName: 'TRƯỜNG THPT SƠN LƯƠNG',
+      schoolName: 'TRƯỜNG THPT MINH HÒA',
       departmentId,
       departmentName,
       weekNumber: weekNum,
@@ -320,16 +454,16 @@ export const departmentScheduleService = {
     // Tuần 4: 28/09/2026 → 04/10/2026
     const sampleToanTuan4: DepartmentWeeklySchedule = {
       id: 'sched_sample_toan_tuan4',
-      schoolName: 'TRƯỜNG THPT SƠN LƯƠNG',
-      departmentId: 'd_toan_ly_tin_cn',
-      departmentName: 'TỔ TOÁN - LÝ - TIN - CN',
+      schoolName: 'TRƯỜNG THPT MINH HÒA',
+      departmentId: 'd_toan_cong_nghe',
+      departmentName: 'TỔ TOÁN - CÔNG NGHỆ',
       weekNumber: 4,
       startDate: '2026-09-28',
       endDate: '2026-10-04',
       year: 2026,
       academicYear: '2026-2027',
       status: 'approved',
-      approvedBy: 'Hiệu trưởng - Nguyễn Quang Sáng',
+      approvedBy: 'Hiệu trưởng - Trịnh Việt Phương',
       approvalDate: '2026-09-27T08:30:00.000Z',
       approvalComment: 'Đã duyệt kế hoạch công tác tuần 4.',
       createdAt: '2026-09-26T10:00:00.000Z',
@@ -342,7 +476,7 @@ export const departmentScheduleService = {
           dateDisplay: 'Thứ Hai, 28/09/2026',
           morningTasks: '- Chào cờ đầu tuần, sơ kết thi đua tuần 3.\n- Giảng dạy TKB chính khóa.',
           afternoonTasks: '- Bồi dưỡng đội tuyển HSG môn Toán 12.',
-          dutyLeaderOrEvaluation: 'Thầy Sáng (HT) trực',
+          dutyLeaderOrEvaluation: 'Thầy Phương (HT) trực',
           notes: ''
         },
         {
@@ -352,7 +486,7 @@ export const departmentScheduleService = {
           dateDisplay: 'Thứ Ba, 29/09/2026',
           morningTasks: '- Giảng dạy chính khóa.\n- Thao giảng môn Vật lý 10.',
           afternoonTasks: '- Tự nghiên cứu bài học, chuẩn bị đồ dùng thực hành.',
-          dutyLeaderOrEvaluation: 'Cô Hoa (PHT)',
+          dutyLeaderOrEvaluation: 'Thầy Lương (PHT)',
           notes: ''
         },
         {
@@ -411,16 +545,16 @@ export const departmentScheduleService = {
     // Tuần 5: 05/10/2026 → 11/10/2026 (ĐÚNG CHÍNH XÁC THEO YÊU CẦU)
     const sampleToanTuan5: DepartmentWeeklySchedule = {
       id: 'sched_sample_toan_tuan5',
-      schoolName: 'TRƯỜNG THPT SƠN LƯƠNG',
-      departmentId: 'd_toan_ly_tin_cn',
-      departmentName: 'TỔ TOÁN - LÝ - TIN - CN',
+      schoolName: 'TRƯỜNG THPT MINH HÒA',
+      departmentId: 'd_toan_cong_nghe',
+      departmentName: 'TỔ TOÁN - CÔNG NGHỆ',
       weekNumber: 5,
       startDate: '2026-10-05',
       endDate: '2026-10-11',
       year: 2026,
       academicYear: '2026-2027',
       status: 'approved',
-      approvedBy: 'Hiệu trưởng - Nguyễn Quang Sáng',
+      approvedBy: 'Hiệu trưởng - Trịnh Việt Phương',
       approvalDate: '2026-10-04T08:30:00.000Z',
       approvalComment: 'Kế hoạch chi tiết, phân công rõ ràng. Đề nghị tổ triển khai nghiêm túc sinh hoạt chuyên môn theo NCBH.',
       createdAt: '2026-10-03T10:00:00.000Z',
@@ -432,8 +566,8 @@ export const departmentScheduleService = {
           date: '2026-10-05',
           dateDisplay: 'Thứ Hai, 05/10/2026',
           morningTasks: '- Chào cờ đầu tuần, phổ biến trọng tâm công tác chuyên môn tháng 10.\n- Dạy học theo TKB khối 10, 11, 12.\n- Kiểm tra giáo án tuần 5 các nhóm môn Toán, Tin học.',
-          afternoonTasks: '- Bồi dưỡng học sinh giỏi Toán 12 (thầy Hùng phụ trách).\n- Ôn tập củng cố kiến thức môn Tin học 11.',
-          dutyLeaderOrEvaluation: 'Thầy Sáng (HT) trực - Đạt yêu cầu',
+          afternoonTasks: '- Bồi dưỡng học sinh giỏi Toán 12 (thầy An phụ trách).\n- Ôn tập củng cố kiến thức môn Tin học 11.',
+          dutyLeaderOrEvaluation: 'Thầy Phương (HT) trực - Đạt yêu cầu',
           notes: 'Nộp sổ báo giảng trước 11h'
         },
         {
@@ -443,7 +577,7 @@ export const departmentScheduleService = {
           dateDisplay: 'Thứ Ba, 06/10/2026',
           morningTasks: '- Giảng dạy chính khóa theo phân phối chương trình.\n- Dự giờ thao giảng môn Vật lý 10 (tiết 3, cô Trang).',
           afternoonTasks: '- Giáo viên tự nghiên cứu bài học, chuẩn bị đồ dùng dạy học thực hành môn Vật lý.',
-          dutyLeaderOrEvaluation: 'Cô Hoa (PHT)',
+          dutyLeaderOrEvaluation: 'Thầy Lương (PHT)',
           notes: 'Phòng thực hành Lý'
         },
         {
@@ -501,9 +635,9 @@ export const departmentScheduleService = {
 
     const sampleVanTuan5: DepartmentWeeklySchedule = {
       id: 'sched_sample_van_tuan5',
-      schoolName: 'TRƯỜNG THPT SƠN LƯƠNG',
-      departmentId: 'd_van_su_dia_gdkt_pl_an',
-      departmentName: 'TỔ VĂN - SỬ - ĐỊA - GDKT&PL - AN',
+      schoolName: 'TRƯỜNG THPT MINH HÒA',
+      departmentId: 'd_van_su_dia_gdkt',
+      departmentName: 'TỔ VĂN - SỬ - ĐỊA- GDKT',
       weekNumber: 5,
       startDate: '2026-10-05',
       endDate: '2026-10-11',
@@ -559,7 +693,7 @@ export const departmentScheduleService = {
           date: '2026-10-09',
           dateDisplay: 'Thứ Sáu, 09/10/2026',
           morningTasks: '- Giảng dạy theo phân công.',
-          afternoonTasks: '- Chuẩn bị hoạt động ngoại khóa "Em yêu lịch sử quê hương Sơn Lương".',
+          afternoonTasks: '- Chuẩn bị hoạt động ngoại khóa "Em yêu lịch sử quê hương Minh Hòa".',
           dutyLeaderOrEvaluation: '',
           notes: ''
         },
@@ -589,9 +723,9 @@ export const departmentScheduleService = {
     // Tuần 6: 12/10/2026 → 18/10/2026
     const sampleToanTuan6: DepartmentWeeklySchedule = {
       id: 'sched_sample_toan_tuan6',
-      schoolName: 'TRƯỜNG THPT SƠN LƯƠNG',
-      departmentId: 'd_toan_ly_tin_cn',
-      departmentName: 'TỔ TOÁN - LÝ - TIN - CN',
+      schoolName: 'TRƯỜNG THPT MINH HÒA',
+      departmentId: 'd_toan_cong_nghe',
+      departmentName: 'TỔ TOÁN - CÔNG NGHỆ',
       weekNumber: 6,
       startDate: '2026-10-12',
       endDate: '2026-10-18',
@@ -608,7 +742,7 @@ export const departmentScheduleService = {
           dateDisplay: 'Thứ Hai, 12/10/2026',
           morningTasks: '- Chào cờ đầu tuần.\n- Dạy học chính khóa theo TKB.',
           afternoonTasks: '- Bồi dưỡng HSG môn Toán 12.',
-          dutyLeaderOrEvaluation: 'Thầy Sáng (HT) trực',
+          dutyLeaderOrEvaluation: 'Thầy Phương (HT) trực',
           notes: ''
         },
         {
@@ -618,7 +752,7 @@ export const departmentScheduleService = {
           dateDisplay: 'Thứ Ba, 13/10/2026',
           morningTasks: '- Dạy học chính khóa.\n- Dự giờ nhóm môn Tin học.',
           afternoonTasks: '- Hướng dẫn học sinh ôn thi HSG.',
-          dutyLeaderOrEvaluation: 'Cô Hoa (PHT)',
+          dutyLeaderOrEvaluation: 'Thầy Lương (PHT)',
           notes: ''
         },
         {

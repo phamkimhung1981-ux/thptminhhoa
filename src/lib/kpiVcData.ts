@@ -1107,11 +1107,11 @@ export const resolveVcTeacherPosition = (teacher: Teacher | null | undefined, de
  * Tra cứu đơn vị công tác chuẩn
  */
 export const resolveVcTeacherDepartment = (teacher: Teacher | null | undefined, departments: Department[] = []): string => {
-  if (!teacher) return 'Trường THPT Sơn Lương';
+  if (!teacher) return 'Trường THPT Minh Hòa';
   if (teacher.departmentName && teacher.departmentName.trim()) {
     return teacher.departmentName.trim();
   }
   const dept = departments.find(d => d.id === teacher.departmentId);
   if (dept) return dept.name;
-  return 'Trường THPT Sơn Lương';
+  return 'Trường THPT Minh Hòa';
 };

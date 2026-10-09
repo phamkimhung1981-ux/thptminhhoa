@@ -3,9 +3,24 @@ import { Department, DisciplineRecord, DisciplineCriterion, Notification, Report
 import { DEFAULT_SYSTEM_MODULES, isAdminUser } from '../lib/moduleData';
 import { KpiStaffForm, KpiStaffPeriod, KpiStaffCriterion } from '../types/kpiStaff';
 import { DEFAULT_STAFF_PERIODS, DEFAULT_STAFF_CRITERIA } from '../lib/kpiStaffData';
-import { subscribeStaffForms, saveStaffFormsToCache, saveStaffFormToFirestore, loadStaffFormsFromCache } from '../services/kpiStaffService';
+import { 
+  subscribeStaffForms, 
+  saveStaffFormsToCache, 
+  saveStaffFormToFirestore, 
+  loadStaffFormsFromCache,
+  subscribeStaffPeriods,
+  saveStaffPeriodToFirestore,
+  loadStaffPeriodsFromCache,
+  saveStaffPeriodsToCache,
+  subscribeStaffCriteria,
+  saveStaffCriterionToFirestore,
+  loadStaffCriteriaFromCache,
+  saveStaffCriteriaToCache
+} from '../services/kpiStaffService';
 import { DEFAULT_TASK_KPIS } from '../lib/kpiTargetAudienceUtils';
 import { OFFICIAL_SCHOOL_TASKS_2026_2027 } from '../utils/sampleSchoolTasks';
+import { STANDARD_DEFAULT_TEACHERS } from '../data/defaultTeachersData';
+import { OFFICIAL_5_DEPARTMENTS, OFFICIAL_DEPARTMENT_IDS, OFFICIAL_DEPARTMENT_NAMES, resolveOfficialDepartmentForTeacher } from '../constants/departmentConfig';
 import { db } from '../lib/firebase';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, writeBatch, getDocs } from 'firebase/firestore';
 
@@ -53,16 +68,24 @@ interface AppContextType extends AppState {
   markNotificationRead: (id: string) => void;
   deleteTeacher: (id: string) => void;
   deleteAllTeachers: () => Promise<void>;
-  importTeachers: (newTeachers: Teacher[]) => Promise<void>;
+  restoreDefaultTeachers: () => Promise<Teacher[]>;
+  importTeachers: (newTeachers: Teacher[], updateExisting?: boolean) => Promise<void>;
   updateTeacher: (id: string, data: Partial<Teacher>) => void;
   addTeacher: (teacher: Teacher) => void;
-  updateDepartment: (id: string, data: Partial<Department>) => void;
-  deleteDepartment: (id: string) => void;
-  addDepartment: (dept: Department) => void;
-  addDisciplineRecord: (record: DisciplineRecord) => void;
-  updateDisciplineRecord: (id: string, data: Partial<DisciplineRecord>) => void;
+  updateDepartment: (id: string, data: Partial<Department>) => Promise<void>;
+  deleteDepartment: (id: string) => Promise<void>;
+  addDepartment: (dept: Department) => Promise<void>;
+  addDisciplineRecord: (record: DisciplineRecord) => Promise<void>;
+  addDisciplineRecords: (records: DisciplineRecord[]) => Promise<void>;
+  updateDisciplineRecord: (id: string, data: Partial<DisciplineRecord>) => Promise<void>;
   deleteDisciplineRecord: (id: string) => Promise<void>;
   deleteDisciplineRecords: (ids: string[]) => Promise<void>;
+  addLeaveRecord: (record: Omit<LeaveRecord, 'id'>) => Promise<void>;
+  updateLeaveRecord: (id: string, updates: Partial<LeaveRecord>) => Promise<void>;
+  deleteLeaveRecord: (id: string) => Promise<void>;
+  addAttendanceRecord: (record: Omit<AttendanceRecord, 'id'>) => Promise<void>;
+  updateAttendanceRecord: (id: string, updates: Partial<AttendanceRecord>) => Promise<void>;
+  deleteAttendanceRecord: (id: string) => Promise<void>;
   addDisciplineCriterion: (criterion: DisciplineCriterion) => Promise<void>;
   updateDisciplineCriterion: (id: string, data: Partial<DisciplineCriterion>) => Promise<void>;
   deleteDisciplineCriterion: (id: string) => Promise<void>;
@@ -196,7 +219,29 @@ const defaultEvalCriteria: EvaluationCriterion[] = [
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>({
     teachers: [],
-    departments: [],
+    departments: (() => {
+      try {
+        const cached = localStorage.getItem('school_departments_cache');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          const hasOldNames = Array.isArray(parsed) && parsed.some((d: any) =>
+            d.name?.includes('Tin-CN') ||
+            d.name?.includes('Hóa-Lý-Sinh') ||
+            d.name?.includes('GDKT&PL-AN') ||
+            !OFFICIAL_DEPARTMENT_NAMES.includes(d.name)
+          );
+          if (Array.isArray(parsed) && parsed.length === 5 && !hasOldNames) {
+            return parsed;
+          }
+        }
+      } catch (e) {}
+      return OFFICIAL_5_DEPARTMENTS.map(d => ({
+        id: d.id,
+        name: d.name,
+        headId: d.headId,
+        description: d.description
+      }));
+    })(),
     tasks: [],
     workAssignments: [],
     reports: [],
@@ -234,18 +279,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return DEFAULT_SYSTEM_MODULES;
     })(),
     kpiStaffForms: loadStaffFormsFromCache(),
-    kpiStaffPeriods: DEFAULT_STAFF_PERIODS,
-    kpiStaffCriteria: DEFAULT_STAFF_CRITERIA,
+    kpiStaffPeriods: loadStaffPeriodsFromCache(),
+    kpiStaffCriteria: loadStaffCriteriaFromCache(),
     loading: true,
     error: null,
   });
 
-  // Staff KPI subscription
+  // Staff KPI subscriptions
   useEffect(() => {
-    const unsub = subscribeStaffForms((forms) => {
+    const unsubForms = subscribeStaffForms((forms) => {
       setState(prev => ({ ...prev, kpiStaffForms: forms }));
     });
-    return () => unsub();
+    const unsubPeriods = subscribeStaffPeriods((periods) => {
+      setState(prev => ({ ...prev, kpiStaffPeriods: periods }));
+    });
+    const unsubCriteria = subscribeStaffCriteria((criteria) => {
+      setState(prev => ({ ...prev, kpiStaffCriteria: criteria }));
+    });
+    return () => {
+      unsubForms();
+      unsubPeriods();
+      unsubCriteria();
+    };
   }, []);
 
   const setKpiStaffForms = (forms: KpiStaffForm[]) => {
@@ -256,10 +311,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setKpiStaffPeriods = (periods: KpiStaffPeriod[]) => {
     setState(prev => ({ ...prev, kpiStaffPeriods: periods }));
+    saveStaffPeriodsToCache(periods);
+    periods.forEach(p => saveStaffPeriodToFirestore(p));
   };
 
   const setKpiStaffCriteria = (criteria: KpiStaffCriterion[]) => {
     setState(prev => ({ ...prev, kpiStaffCriteria: criteria }));
+    saveStaffCriteriaToCache(criteria);
+    criteria.forEach(c => saveStaffCriterionToFirestore(c));
   };
 
   useEffect(() => {
@@ -269,6 +328,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const q = collection(db, colName);
       const unsub = onSnapshot(q, (snapshot) => {
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (key === 'departments' && data.length > 0) {
+          try {
+            localStorage.setItem('school_departments_cache', JSON.stringify(data));
+          } catch (e) {}
+        }
         setState(prev => ({ ...prev, [key]: data }));
       }, (error) => {
         console.error(`Error fetching ${colName}:`, error);
@@ -322,7 +386,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
     unsubscribes.push(unsubModules);
 
-    // Thống kê trường học THPT Sơn Lương từ Database
+    // Thống kê trường học THPT Minh Hòa từ Database
     const statsDocRef = doc(db, 'systemSettings', 'schoolStats');
     const unsubStats = onSnapshot(statsDocRef, (snap) => {
       if (snap.exists()) {
@@ -883,7 +947,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             batch.set(doc(db, 'workAssignments', wa.id), sanitize(wa));
           });
           await batch.commit();
-          console.log('Seeded official school work assignments for THPT Sơn Lương successfully.');
+          console.log('Seeded official school work assignments for THPT Minh Hòa successfully.');
         }
       } catch (e) {
         console.warn('Could not seed work assignments:', e);
@@ -940,80 +1004,50 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     seedReportsIfEmpty();
 
-    const rename16MemberDepartmentToVanSuDia = async () => {
+    const seedAndSyncOfficialDepartments = async () => {
       try {
         const deptCol = collection(db, 'departments');
-        const teacherCol = collection(db, 'teachers');
-
-        const [deptSnap, teacherSnap] = await Promise.all([
-          getDocs(deptCol),
-          getDocs(teacherCol)
-        ]);
-
-        const teachersList = teacherSnap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
-
+        const snap = await getDocs(deptCol);
         const batch = writeBatch(db);
         let neededUpdate = false;
 
-        deptSnap.docs.forEach(docSnap => {
-          const deptData = docSnap.data();
-          const deptId = docSnap.id;
-          const currentName = deptData.name || '';
-
-          // Count members belonging to this department ID
-          const membersCount = teachersList.filter(t => t.departmentId === deptId).length;
-
-          // Rule: If department name is "Tổ Văn phòng" AND member count is 16 (or > 10) OR if doc.id is 'd_van_su_dia_gdkt_pl_an'
-          // ABSOLUTELY DO NOT rename the "Tổ Văn phòng" record that has 5 members!
-          if ((currentName === 'Tổ Văn phòng' && membersCount === 16) ||
-              (currentName === 'Tổ Văn phòng' && membersCount > 10) ||
-              (deptId === 'd_van_su_dia_gdkt_pl_an' && currentName !== 'Tổ Văn-Sử-Địa-GDKT&PL-AN')) {
-            batch.update(docSnap.ref, {
-              name: 'Tổ Văn-Sử-Địa-GDKT&PL-AN',
-              updatedAt: new Date().toISOString()
-            });
+        // 1. Xóa các bản ghi tổ cũ không thuộc 05 tổ chính thức
+        const officialIds = new Set(OFFICIAL_DEPARTMENT_IDS);
+        snap.docs.forEach(docSnap => {
+          if (!officialIds.has(docSnap.id)) {
+            batch.delete(docSnap.ref);
             neededUpdate = true;
           }
         });
 
-        if (neededUpdate) {
-          await batch.commit();
-        }
-      } catch (e) {
-        console.warn('Could not execute department rename migration:', e);
-      }
-    };
-    rename16MemberDepartmentToVanSuDia();
-
-    const seedDepartmentsIfEmpty = async () => {
-      try {
-        const deptCol = collection(db, 'departments');
-        const snap = await getDocs(deptCol);
-        
-        const requestedDepts = [
-          { id: 'd_toan_ly_tin_cn', name: 'Tổ Toán-Lý-Tin-CN', headId: 't1' },
-          { id: 'd_hoa_ly_sinh_gdqpan_nn', name: 'Tổ Hóa-Lý-Sinh-GDQPAN-NN', headId: 't3' },
-          { id: 'd_van_su_dia_gdkt_pl_an', name: 'Tổ Văn-Sử-Địa-GDKT&PL-AN', headId: 't2' },
-          { id: 'd_van_phong', name: 'Tổ Văn phòng', headId: 't4' }
-        ];
-
-        const batch = writeBatch(db);
-        let neededToSeed = false;
-
-        // Sync missing default departments without overwriting existing ones
-        for (const d of requestedDepts) {
-          const existingDoc = snap.docs.find(docSnap => docSnap.id === d.id);
-          if (!existingDoc) {
-            batch.set(doc(db, 'departments', d.id), d);
-            neededToSeed = true;
+        // 2. Bảo đảm lưu đúng 05 tổ chính thức với tên chính thức
+        for (const officialDept of OFFICIAL_5_DEPARTMENTS) {
+          const existingDoc = snap.docs.find(d => d.id === officialDept.id);
+          const deptPayload = {
+            id: officialDept.id,
+            name: officialDept.name,
+            headId: officialDept.headId || '',
+            description: officialDept.description || ''
+          };
+          if (!existingDoc || existingDoc.data().name !== officialDept.name) {
+            batch.set(doc(db, 'departments', officialDept.id), deptPayload);
+            neededUpdate = true;
           }
         }
 
-        if (neededToSeed) {
+        if (neededUpdate) {
           await batch.commit();
+          try {
+            localStorage.setItem('school_departments_cache', JSON.stringify(OFFICIAL_5_DEPARTMENTS.map(d => ({
+              id: d.id,
+              name: d.name,
+              headId: d.headId,
+              description: d.description
+            }))));
+          } catch (e) {}
         }
       } catch (e) {
-        console.warn('Could not seed departments:', e);
+        console.warn('Could not sync official departments:', e);
       }
     };
 
@@ -1022,194 +1056,95 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const teacherCol = collection(db, 'teachers');
         const snap = await getDocs(teacherCol);
 
-        if (snap.empty) {
-          const defaultTeachers: Teacher[] = [
-            {
-              id: 't_ht',
-              username: 'hieutruong',
-              code: 'BGH001',
-              name: 'Nguyễn Quang Sáng',
-              role: 'BGH',
-              position: 'Hiệu trưởng',
-              departmentId: 'd_bgh',
-              departmentName: 'Ban Giám hiệu',
-              status: 'Đang công tác',
-              email: 'nguyenquangsang@sonluong.edu.vn',
-              phone: '0988888888',
-              subject: 'Quản lý giáo dục',
-              joinDate: '2015-09-01',
-              degree: 'Thạc sĩ'
-            },
-            {
-              id: 't_pht1',
-              username: 'phohieutruong1',
-              code: 'BGH002',
-              name: 'Phạm Kim Hùng',
-              role: 'BGH',
-              position: 'Phó Hiệu trưởng',
-              departmentId: 'd_bgh',
-              departmentName: 'Ban Giám hiệu',
-              status: 'Đang công tác',
-              email: 'phamkimhung@sonluong.edu.vn',
-              phone: '0977777777',
-              subject: 'Quản lý chuyên môn',
-              joinDate: '2017-09-01',
-              degree: 'Thạc sĩ'
-            },
-            {
-              id: 't_pht2',
-              username: 'phohieutruong2',
-              code: 'BGH003',
-              name: 'Nguyễn Anh Hòa',
-              role: 'BGH',
-              position: 'Phó Hiệu trưởng',
-              departmentId: 'd_bgh',
-              departmentName: 'Ban Giám hiệu',
-              status: 'Đang công tác',
-              email: 'nguyenanhhoa@sonluong.edu.vn',
-              phone: '0966666666',
-              subject: 'Quản lý cơ sở vật chất',
-              joinDate: '2018-09-01',
-              degree: 'Thạc sĩ'
-            },
-            {
-              id: 't1',
-              username: 'gv001',
-              code: 'GV001',
-              name: 'Nguyễn Văn An',
-              role: 'GIAO_VIEN',
-              departmentId: 'd_toan_ly_tin_cn',
-              status: 'Đang công tác',
-              email: 'nguyenvanan@sonluong.edu.vn',
-              phone: '0912345678',
-              subject: 'Toán',
-              joinDate: '2020-09-01',
-              degree: 'Cử nhân'
-            },
-            {
-              id: 't2',
-              username: 'gv002',
-              code: 'GV002',
-              name: 'Trần Thị Bình',
-              role: 'GIAO_VIEN',
-              departmentId: 'd_van_su_dia_gdkt_pt_an',
-              status: 'Đang công tác',
-              email: 'tranthibinh@sonluong.edu.vn',
-              phone: '0923456789',
-              subject: 'Ngữ văn',
-              joinDate: '2019-09-01',
-              degree: 'Thạc sĩ'
-            },
-            {
-              id: 't3',
-              username: 'gv003',
-              code: 'GV003',
-              name: 'Lê Văn Cường',
-              role: 'GIAO_VIEN',
-              departmentId: 'd_hoa_sinh_qpan_tc_nn',
-              status: 'Đang công tác',
-              email: 'levancuong@sonluong.edu.vn',
-              phone: '0934567890',
-              subject: 'Tiếng Anh',
-              joinDate: '2021-09-01',
-              degree: 'Cử nhân'
-            },
-            {
-              id: 't4',
-              username: 'gv004',
-              code: 'GV004',
-              name: 'Phạm Thị Dung',
-              role: 'GIAO_VIEN',
-              departmentId: 'd_van_phong',
-              status: 'Đang công tác',
-              email: 'phamthidung@sonluong.edu.vn',
-              phone: '0945678901',
-              subject: 'Tin học',
-              joinDate: '2018-09-01',
-              degree: 'Cử nhân'
-            },
-            {
-              id: 't5',
-              username: 'gv005',
-              code: 'GV005',
-              name: 'Hoàng Văn Em',
-              role: 'GIAO_VIEN',
-              departmentId: 'd_hoa_sinh_qpan_tc_nn',
-              status: 'Đang công tác',
-              email: 'hoangvanem@sonluong.edu.vn',
-              phone: '0956789012',
-              subject: 'Sinh học',
-              joinDate: '2022-09-01',
-              degree: 'Cử nhân'
-            }
-          ];
-
+        if (snap.empty || snap.size <= 3) {
           const batch = writeBatch(db);
-          defaultTeachers.forEach(t => {
+          STANDARD_DEFAULT_TEACHERS.forEach(t => {
             batch.set(doc(db, 'teachers', t.id), sanitize(t));
           });
+          const statsDocRef = doc(db, 'systemSettings', 'schoolStats');
+          batch.set(statsDocRef, { totalTeachers: STANDARD_DEFAULT_TEACHERS.length }, { merge: true });
           await batch.commit();
-          console.log('Seeded default teachers successfully with correct BGH.');
+          console.log('Seeded standard default teachers successfully (51 CBGVNV).');
         } else {
           // Repair existing teachers and ensure correct BGH names
           let hasCorrupted = false;
           const batch = writeBatch(db);
 
+          // Xóa triệt để các bản ghi BGH giả lập/cũ nếu còn tồn tại
+          const oldMockBghIds = new Set(['t_ht', 't_pht1', 't_pht2']);
+          snap.docs.forEach(d => {
+            const tData = d.data() as Teacher;
+            const tName = (tData.name || '').toLowerCase();
+            if (
+              oldMockBghIds.has(d.id) ||
+              tName.includes('nguyễn quang sáng') || tName.includes('nguyen quang sang') ||
+              tName.includes('phạm kim hùng') || tName.includes('pham kim hung') ||
+              tName.includes('nguyễn anh hòa') || tName.includes('nguyen anh hoa')
+            ) {
+              batch.delete(d.ref);
+              hasCorrupted = true;
+            }
+          });
+
+          // Đảm bảo Ban Giám hiệu chính thức của Trường THPT Minh Hòa
           const bghList: Teacher[] = [
             {
-              id: 't_ht',
-              username: 'hieutruong',
-              code: 'BGH001',
-              name: 'Nguyễn Quang Sáng',
+              id: 't_1791548696701_km5af',
+              username: 'bgh 01',
+              code: 'BGH 01',
+              name: 'Trịnh Việt Phương',
               role: 'BGH',
               position: 'Hiệu trưởng',
               departmentId: 'd_bgh',
               departmentName: 'Ban Giám hiệu',
               status: 'Đang công tác',
-              email: 'nguyenquangsang@sonluong.edu.vn',
-              phone: '0988888888',
-              subject: 'Quản lý giáo dục',
+              email: 'trinhvietphuong@minhhoa.edu.vn',
+              phone: '',
+              subject: 'Toán',
               joinDate: '2015-09-01',
-              degree: 'Thạc sĩ'
+              degree: 'Thạc sĩ Quản lý giáo dục'
             },
             {
-              id: 't_pht1',
-              username: 'phohieutruong1',
-              code: 'BGH002',
-              name: 'Phạm Kim Hùng',
+              id: 't_1791548696701_cas2e',
+              username: 'bgh 03',
+              code: 'BGH 03',
+              name: 'Vũ Xuân Lương',
               role: 'BGH',
               position: 'Phó Hiệu trưởng',
               departmentId: 'd_bgh',
               departmentName: 'Ban Giám hiệu',
               status: 'Đang công tác',
-              email: 'phamkimhung@sonluong.edu.vn',
-              phone: '0977777777',
-              subject: 'Quản lý chuyên môn',
+              email: 'vuxuanluong@minhhoa.edu.vn',
+              phone: '',
+              subject: 'Toán',
               joinDate: '2017-09-01',
-              degree: 'Thạc sĩ'
+              degree: 'Thạc sĩ Toán học'
             },
             {
-              id: 't_pht2',
-              username: 'phohieutruong2',
-              code: 'BGH003',
-              name: 'Nguyễn Anh Hòa',
+              id: 't_1791548696701_xzlzz',
+              username: 'bgh 02',
+              code: 'BGH 02',
+              name: 'Đỗ Đức Quỳnh',
               role: 'BGH',
               position: 'Phó Hiệu trưởng',
               departmentId: 'd_bgh',
               departmentName: 'Ban Giám hiệu',
               status: 'Đang công tác',
-              email: 'nguyenanhhoa@sonluong.edu.vn',
-              phone: '0966666666',
-              subject: 'Quản lý cơ sở vật chất',
+              email: 'doducquynh@minhhoa.edu.vn',
+              phone: '',
+              subject: 'Toán',
               joinDate: '2018-09-01',
-              degree: 'Thạc sĩ'
+              degree: 'Thạc sĩ Vật lý'
             }
           ];
 
           bghList.forEach(b => {
-            batch.set(doc(db, 'teachers', b.id), sanitize(b), { merge: true });
+            const existingBgh = snap.docs.find(d => d.id === b.id);
+            if (!existingBgh) {
+              batch.set(doc(db, 'teachers', b.id), sanitize(b));
+              hasCorrupted = true;
+            }
           });
-          hasCorrupted = true;
           const replacementNames = [
             'Nguyễn Văn An', 'Trần Thị Bình', 'Lê Văn Cường', 'Phạm Thị Dung', 'Hoàng Văn Em',
             'Vũ Thị Hồng', 'Phan Văn Giang', 'Bùi Thị Hà', 'Đỗ Minh Khang', 'Nguyễn Thị Lan',
@@ -1234,6 +1169,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
               changed = true;
             }
 
+            // Align teacher department if necessary
+            const resolvedDept = resolveOfficialDepartmentForTeacher(t);
+            if (resolvedDept && (t.departmentId !== resolvedDept.id || t.departmentName !== resolvedDept.name)) {
+              changed = true;
+              hasCorrupted = true;
+              batch.update(doc(db, 'teachers', d.id), {
+                departmentId: resolvedDept.id,
+                departmentName: resolvedDept.name
+              });
+            }
+
             if (changed) {
               hasCorrupted = true;
               batch.update(doc(db, 'teachers', d.id), {
@@ -1256,7 +1202,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
 
     const initData = async () => {
-      await seedDepartmentsIfEmpty();
+      await seedAndSyncOfficialDepartments();
       await seedAndRepairTeachers();
       setState(prev => ({ ...prev, loading: false }));
     };
@@ -1347,6 +1293,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const deleteAllTeachers = async () => {
     try {
+      setState(prev => ({ ...prev, teachers: [] }));
       const batch = writeBatch(db);
       state.teachers.forEach(t => {
         batch.delete(doc(db, 'teachers', t.id));
@@ -1358,50 +1305,183 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const importTeachers = async (newTeachers: Teacher[]) => {
+  const restoreDefaultTeachers = async (): Promise<Teacher[]> => {
     try {
+      // 1. Cập nhật State tức thì (Optimistic UI)
+      setState(prev => ({
+        ...prev,
+        teachers: STANDARD_DEFAULT_TEACHERS,
+        schoolStats: {
+          ...prev.schoolStats,
+          totalTeachers: STANDARD_DEFAULT_TEACHERS.length
+        }
+      }));
+
+      // 2. Xóa các document cũ và ghi toàn bộ 51 CBGVNV chuẩn vào Firestore
+      const snap = await getDocs(collection(db, 'teachers'));
       const batch = writeBatch(db);
-      newTeachers.forEach(t => {
-        if (!t.id) t.id = `t${Date.now()}_${Math.random()}`;
-        const ref = doc(db, 'teachers', t.id);
-        batch.set(ref, sanitize(t));
+      snap.docs.forEach(d => {
+        batch.delete(d.ref);
       });
+      STANDARD_DEFAULT_TEACHERS.forEach(t => {
+        batch.set(doc(db, 'teachers', t.id), sanitize(t));
+      });
+
+      // 3. Cập nhật số lượng giáo viên trong schoolStats
+      const statsDocRef = doc(db, 'systemSettings', 'schoolStats');
+      batch.set(statsDocRef, { totalTeachers: STANDARD_DEFAULT_TEACHERS.length }, { merge: true });
+
       await batch.commit();
+      return STANDARD_DEFAULT_TEACHERS;
+    } catch (e) {
+      handleDbError(e);
+      throw e;
+    }
+  };
+
+  const importTeachers = async (newTeachers: Teacher[], updateExisting: boolean = false) => {
+    try {
+      // Cập nhật State tức thì (Optimistic UI) để giao diện hiển thị ngay lập tức không cần F5
+      setState(prev => {
+        const currentList = [...prev.teachers];
+        newTeachers.forEach(item => {
+          const idx = currentList.findIndex(t => 
+            (item.id && t.id === item.id) ||
+            (item.code && t.code && t.code.trim().toUpperCase() === item.code.trim().toUpperCase())
+          );
+          if (idx >= 0) {
+            if (updateExisting) {
+              currentList[idx] = { ...currentList[idx], ...item };
+            }
+          } else {
+            currentList.push(item);
+          }
+        });
+        return {
+          ...prev,
+          teachers: currentList
+        };
+      });
+
+      // Lưu hàng loạt vào Firestore theo chunk
+      const chunkSize = 400;
+      for (let i = 0; i < newTeachers.length; i += chunkSize) {
+        const chunk = newTeachers.slice(i, i + chunkSize);
+        const batch = writeBatch(db);
+        chunk.forEach(t => {
+          const docId = t.id || `t_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+          const ref = doc(db, 'teachers', docId);
+          batch.set(ref, sanitize({ ...t, id: docId }), { merge: true });
+        });
+        await batch.commit();
+      }
     } catch (e) { 
+      console.error('Lỗi khi import CBGVNV vào Firestore:', e);
       handleDbError(e); 
       throw e; 
     }
   };
 
   const updateTeacher = async (id: string, data: Partial<Teacher>) => {
-    try { await updateDoc(doc(db, 'teachers', id), sanitize(data)); } catch (e) { handleDbError(e); }
+    try {
+      setState(prev => ({
+        ...prev,
+        teachers: prev.teachers.map(t => t.id === id ? { ...t, ...data } : t)
+      }));
+      await updateDoc(doc(db, 'teachers', id), sanitize(data));
+    } catch (e) { handleDbError(e); }
   };
 
   const addTeacher = async (teacher: Teacher) => {
     try {
-      if (!teacher.id) teacher.id = `t${Date.now()}_${Math.random()}`;
-      await setDoc(doc(db, 'teachers', teacher.id), sanitize(teacher));
+      const docId = teacher.id || `t_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const newTeacher = { ...teacher, id: docId };
+      setState(prev => ({
+        ...prev,
+        teachers: [newTeacher, ...prev.teachers.filter(t => t.id !== docId)]
+      }));
+      await setDoc(doc(db, 'teachers', docId), sanitize(newTeacher));
     } catch (e) { handleDbError(e); }
   };
 
   const updateDepartment = async (id: string, data: Partial<Department>) => {
     try {
+      setState(prev => {
+        const nextDepts = prev.departments.map(d => d.id === id ? { ...d, ...data } : d);
+        try {
+          localStorage.setItem('school_departments_cache', JSON.stringify(nextDepts));
+        } catch (e) {}
+        return {
+          ...prev,
+          departments: nextDepts
+        };
+      });
+
       await updateDoc(doc(db, 'departments', id), sanitize(data));
       if (data.headId) {
         await updateDoc(doc(db, 'teachers', data.headId), { departmentId: id });
+        setState(prev => ({
+          ...prev,
+          teachers: prev.teachers.map(t => t.id === data.headId ? { ...t, departmentId: id } : t)
+        }));
       }
-    } catch (e) { handleDbError(e); }
+    } catch (e) { 
+      console.error('Error updating department:', e);
+      handleDbError(e); 
+    }
   };
 
   const deleteDepartment = async (id: string) => {
-    try { await deleteDoc(doc(db, 'departments', id)); } catch (e) { handleDbError(e); }
+    try {
+      setState(prev => {
+        const nextDepts = prev.departments.filter(d => d.id !== id);
+        try {
+          localStorage.setItem('school_departments_cache', JSON.stringify(nextDepts));
+        } catch (e) {}
+        return {
+          ...prev,
+          departments: nextDepts
+        };
+      });
+      await deleteDoc(doc(db, 'departments', id));
+    } catch (e) { 
+      console.error('Error deleting department:', e);
+      handleDbError(e); 
+    }
   };
 
   const addDepartment = async (dept: Department) => {
     try {
-      if (!dept.id) dept.id = `d${Date.now()}_${Math.random()}`;
-      await setDoc(doc(db, 'departments', dept.id), sanitize(dept));
-    } catch (e) { handleDbError(e); }
+      const newDeptId = dept.id || `dept_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const newDept: Department = {
+        ...dept,
+        id: newDeptId,
+        name: dept.name?.trim() || 'Tổ mới'
+      };
+
+      setState(prev => {
+        const nextDepts = [...prev.departments.filter(d => d.id !== newDeptId), newDept];
+        try {
+          localStorage.setItem('school_departments_cache', JSON.stringify(nextDepts));
+        } catch (e) {}
+        return {
+          ...prev,
+          departments: nextDepts
+        };
+      });
+
+      await setDoc(doc(db, 'departments', newDeptId), sanitize(newDept));
+      if (newDept.headId) {
+        await updateDoc(doc(db, 'teachers', newDept.headId), { departmentId: newDeptId });
+        setState(prev => ({
+          ...prev,
+          teachers: prev.teachers.map(t => t.id === newDept.headId ? { ...t, departmentId: newDeptId } : t)
+        }));
+      }
+    } catch (e) { 
+      console.error('Error adding department:', e);
+      handleDbError(e); 
+    }
   };
 
   
@@ -1409,11 +1489,42 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       if (!record.id) record.id = `dr${Date.now()}_${Math.random()}`;
       await setDoc(doc(db, 'disciplineRecords', record.id), sanitize(record));
-    } catch (e) { handleDbError(e); }
+    } catch (e) {
+      handleDbError(e);
+      throw e;
+    }
+  };
+
+  const addDisciplineRecords = async (records: DisciplineRecord[]) => {
+    try {
+      if (!records || records.length === 0) return;
+      setState(prev => ({
+        ...prev,
+        disciplineRecords: [...records, ...prev.disciplineRecords.filter(r => !records.some(nr => nr.id === r.id))]
+      }));
+      const chunkSize = 400;
+      for (let i = 0; i < records.length; i += chunkSize) {
+        const chunk = records.slice(i, i + chunkSize);
+        const batch = writeBatch(db);
+        chunk.forEach(r => {
+          const docId = r.id || `dr${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+          batch.set(doc(db, 'disciplineRecords', docId), sanitize({ ...r, id: docId }), { merge: true });
+        });
+        await batch.commit();
+      }
+    } catch (e) {
+      handleDbError(e);
+      throw e;
+    }
   };
 
   const updateDisciplineRecord = async (id: string, data: Partial<DisciplineRecord>) => {
-    try { await updateDoc(doc(db, 'disciplineRecords', id), sanitize(data)); } catch (e) { handleDbError(e); }
+    try {
+      await updateDoc(doc(db, 'disciplineRecords', id), sanitize(data));
+    } catch (e) {
+      handleDbError(e);
+      throw e;
+    }
   };
 
   
@@ -2161,7 +2272,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AppContext.Provider value={{ ...state, updateTaskStatus, markNotificationRead, deleteTeacher, deleteAllTeachers, importTeachers, updateTeacher, addTeacher, updateDepartment, deleteDepartment, addDepartment, addDisciplineRecord, updateDisciplineRecord, deleteDisciplineRecord, deleteDisciplineRecords,
+    <AppContext.Provider value={{ ...state, updateTaskStatus, markNotificationRead, deleteTeacher, deleteAllTeachers, importTeachers, updateTeacher, addTeacher, updateDepartment, deleteDepartment, addDepartment, addDisciplineRecord, addDisciplineRecords, updateDisciplineRecord, deleteDisciplineRecord, deleteDisciplineRecords,
         addDisciplineCriterion, updateDisciplineCriterion, deleteDisciplineCriterion,
         addGeneralKpi, updateGeneralKpi, deleteGeneralKpi,
         addKpiGroup, updateKpiGroup, deleteKpiGroup,

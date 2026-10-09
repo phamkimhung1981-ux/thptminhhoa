@@ -66,14 +66,14 @@ export interface DepartmentConfig {
 
 export const PRESET_DEPARTMENTS: DepartmentConfig[] = [
   {
-    id: 'd_toan_ly_tin_cn',
-    slug: 'toan-ly-tin-cn',
-    name: 'Tổ Toán-Lý-Tin-CN',
-    shortName: 'Toán-Lý-Tin-CN',
-    groupToken: 'GROUP_TOAN_LY_TIN_CN',
+    id: 'd_toan_cong_nghe',
+    slug: 'toan-cong-nghe',
+    name: 'Tổ Toán - Công Nghệ',
+    shortName: 'Toán - Công Nghệ',
+    groupToken: 'GROUP_TOAN_CONG_NGHE',
     icon: Calculator,
-    description: 'Chuyên môn bộ môn Toán, Vật lý, Tin học và Công nghệ',
-    subjects: ['Toán', 'Vật lý', 'Tin học', 'Công nghệ'],
+    description: 'Chuyên môn bộ môn Toán và Công nghệ',
+    subjects: ['Toán', 'Công nghệ'],
     color: {
       border: 'border-blue-200',
       bg: 'bg-blue-600',
@@ -85,33 +85,14 @@ export const PRESET_DEPARTMENTS: DepartmentConfig[] = [
     }
   },
   {
-    id: 'd_hoa_ly_sinh_gdqpan_nn',
-    slug: 'hoa-ly-sinh-gdqpan-nn',
-    name: 'Tổ Hóa-Lý-Sinh-GDQPAN-NN',
-    shortName: 'Hóa-Lý-Sinh-GDQPAN-NN',
-    groupToken: 'GROUP_HOA_LY_SINH_GDQPAN_NN',
-    icon: FlaskConical,
-    description: 'Chuyên môn bộ môn Hóa học, Sinh học, GDQP-AN, Ngoại ngữ (Tiếng Anh) & Thể dục',
-    subjects: ['Hóa học', 'Sinh học', 'GDQP-AN', 'Tiếng Anh', 'Ngoại ngữ', 'Thể dục'],
-    color: {
-      border: 'border-emerald-200',
-      bg: 'bg-emerald-600',
-      badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      text: 'text-emerald-700',
-      activeTab: 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20',
-      light: 'bg-emerald-50/70',
-      ring: 'focus:ring-emerald-500 focus:border-emerald-500'
-    }
-  },
-  {
-    id: 'd_van_su_dia_gdkt_pl_an',
-    slug: 'van-su-dia-gdkt-pl-an',
-    name: 'Tổ Văn-Sử-Địa-GDKT&PL-AN',
-    shortName: 'Văn-Sử-Địa-GDKT&PL-AN',
-    groupToken: 'GROUP_VAN_SU_DIA_GDKT_PL_AN',
+    id: 'd_van_su_dia_gdkt',
+    slug: 'van-su-dia-gdkt',
+    name: 'Tổ Văn - Sử - Địa- GDKT',
+    shortName: 'Văn - Sử - Địa- GDKT',
+    groupToken: 'GROUP_VAN_SU_DIA_GDKT',
     icon: BookOpen,
-    description: 'Chuyên môn bộ môn Ngữ văn, Lịch sử, Địa lí, GDKT&PL và Âm nhạc / Nghệ thuật',
-    subjects: ['Ngữ văn', 'Lịch sử', 'Địa lí', 'GDKT&PL', 'Âm nhạc', 'Mĩ thuật', 'GDCD'],
+    description: 'Chuyên môn bộ môn Ngữ văn, Lịch sử, Địa lý, GDKT&PL và Nghệ thuật',
+    subjects: ['Ngữ văn', 'Văn', 'Lịch sử', 'Sử', 'Địa lý', 'Địa lí', 'GDKT&PL', 'GDKT', 'Âm nhạc', 'Mỹ thuật', 'Mĩ thuật', 'GDCD'],
     color: {
       border: 'border-amber-200',
       bg: 'bg-amber-600',
@@ -123,14 +104,52 @@ export const PRESET_DEPARTMENTS: DepartmentConfig[] = [
     }
   },
   {
+    id: 'd_ly_hoa_sinh',
+    slug: 'ly-hoa-sinh',
+    name: 'Tổ Lý - Hóa- Sinh',
+    shortName: 'Lý - Hóa- Sinh',
+    groupToken: 'GROUP_LY_HOA_SINH',
+    icon: FlaskConical,
+    description: 'Chuyên môn bộ môn Vật lý, Hóa học và Sinh học',
+    subjects: ['Vật lý', 'Vật lí', 'Hóa học', 'Hóa', 'Sinh học', 'Sinh'],
+    color: {
+      border: 'border-emerald-200',
+      bg: 'bg-emerald-600',
+      badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      text: 'text-emerald-700',
+      activeTab: 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20',
+      light: 'bg-emerald-50/70',
+      ring: 'focus:ring-emerald-500 focus:border-emerald-500'
+    }
+  },
+  {
+    id: 'd_ngoai_ngu_tin_hoc_gdtc_gdqpan',
+    slug: 'ngoai-ngu-tin-hoc-gdtc-gdqpan',
+    name: 'Tổ Ngoại ngữ - Tin học– GDTC- GDQP&AN',
+    shortName: 'Ngoại ngữ - Tin học– GDTC- GDQP&AN',
+    groupToken: 'GROUP_NGOAI_NGU_TIN_HOC_GDTC_GDQPAN',
+    icon: Building2,
+    description: 'Chuyên môn bộ môn Ngoại ngữ (Tiếng Anh), Tin học, GDTC (Thể dục) và GDQP&AN',
+    subjects: ['Tiếng Anh', 'Ngoại ngữ', 'Tin học', 'Tin', 'Thể dục', 'GDTC', 'GDQP&AN', 'GDQP-AN', 'Quốc phòng'],
+    color: {
+      border: 'border-teal-200',
+      bg: 'bg-teal-600',
+      badge: 'bg-teal-50 text-teal-700 border-teal-200',
+      text: 'text-teal-700',
+      activeTab: 'bg-teal-600 text-white shadow-md shadow-teal-500/20',
+      light: 'bg-teal-50/70',
+      ring: 'focus:ring-teal-500 focus:border-teal-500'
+    }
+  },
+  {
     id: 'd_van_phong',
     slug: 'van-phong',
     name: 'Tổ Văn phòng',
     shortName: 'Văn phòng',
     groupToken: 'GROUP_VAN_PHONG',
     icon: Briefcase,
-    description: 'Bộ phận Văn thư, Kế toán, Thủ quỹ, Y tế, Thư viện và Thiết bị trường học',
-    subjects: ['Văn thư', 'Kế toán', 'Thủ quỹ', 'Y tế', 'Thư viện', 'Thiết bị', 'Hành chính'],
+    description: 'Bộ phận Văn thư, Kế toán, Thủ quỹ, Y tế, Thư viện, Thiết bị, CNTT và Bảo vệ',
+    subjects: ['Văn thư', 'Kế toán', 'Thủ quỹ', 'Y tế', 'Thư viện', 'Thiết bị', 'Hành chính', 'CNTT', 'Bảo vệ'],
     color: {
       border: 'border-purple-200',
       bg: 'bg-purple-600',
@@ -975,7 +994,7 @@ export default function Tasks() {
                 Bảng Giao Việc Theo Tuần
               </h1>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-blue-50 text-blue-800 border border-blue-200 shadow-2xs">
-                THPT Sơn Lương
+                THPT Minh Hòa
               </span>
             </div>
             <p className="text-xs sm:text-sm font-medium text-slate-500 mt-1">

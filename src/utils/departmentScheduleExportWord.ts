@@ -293,7 +293,7 @@ export async function exportDepartmentScheduleToWord(schedule: DepartmentWeeklyS
             spacing: { before: 0, after: 60 },
             children: [
               new DocxTextRun({
-                text: schedule.schoolName || 'TRƯỜNG THPT SƠN LƯƠNG',
+                text: schedule.schoolName || 'TRƯỜNG THPT MINH HÒA',
                 bold: true,
                 font: 'Times New Roman',
                 size: 24
@@ -351,7 +351,7 @@ export async function exportDepartmentScheduleToWord(schedule: DepartmentWeeklyS
             alignment: DocxAlignmentType.RIGHT,
             children: [
               new DocxTextRun({
-                text: `Sơn Lương, ngày .... tháng .... năm ${yearStr}`,
+                text: `Minh Hòa, ngày .... tháng .... năm ${yearStr}`,
                 italics: true,
                 font: 'Times New Roman',
                 size: 20
@@ -456,7 +456,7 @@ export async function downloadBlankTemplateWord(departmentName = '', weekNumber 
 
   const blankSchedule: DepartmentWeeklySchedule = {
     id: 'template',
-    schoolName: 'TRƯỜNG THPT SƠN LƯƠNG',
+    schoolName: 'TRƯỜNG THPT MINH HÒA',
     departmentId: '',
     departmentName: departmentName || '……………………………………………..',
     weekNumber: (weekNumber ? Number(weekNumber) : '') as any,

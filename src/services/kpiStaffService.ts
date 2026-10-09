@@ -55,6 +55,142 @@ export const STAFF_COLLECTIONS = {
 
 const STAFF_FORMS_CACHE_KEY = 'kpi_staff_forms_cache';
 
+// Periods Cache Helpers
+const STAFF_PERIODS_CACHE_KEY = 'kpi_staff_periods_cache';
+
+export const loadStaffPeriodsFromCache = (): KpiStaffPeriod[] => {
+  try {
+    const raw = localStorage.getItem(STAFF_PERIODS_CACHE_KEY);
+    if (!raw) return DEFAULT_STAFF_PERIODS;
+    const cached: KpiStaffPeriod[] = JSON.parse(raw);
+    if (!Array.isArray(cached) || cached.length === 0) return DEFAULT_STAFF_PERIODS;
+    
+    // Check if any default period from 2026-2027 is missing
+    const cachedIds = new Set(cached.map(p => p.id));
+    const missing = DEFAULT_STAFF_PERIODS.filter(p => !cachedIds.has(p.id));
+    if (missing.length > 0) {
+      const merged = [...cached, ...missing];
+      saveStaffPeriodsToCache(merged);
+      return merged;
+    }
+    return cached;
+  } catch {
+    return DEFAULT_STAFF_PERIODS;
+  }
+};
+
+export const saveStaffPeriodsToCache = (periods: KpiStaffPeriod[]) => {
+  try {
+    localStorage.setItem(STAFF_PERIODS_CACHE_KEY, JSON.stringify(periods));
+  } catch (err) {
+    console.error('Failed saving staff periods to cache:', err);
+  }
+};
+
+export const subscribeStaffPeriods = (callback: (periods: KpiStaffPeriod[]) => void) => {
+  try {
+    const colRef = collection(db, STAFF_COLLECTIONS.PERIODS);
+    return onSnapshot(colRef, (snapshot) => {
+      if (snapshot.empty) {
+        // Seed initial periods if empty
+        DEFAULT_STAFF_PERIODS.forEach(p => saveStaffPeriodToFirestore(p));
+        saveStaffPeriodsToCache(DEFAULT_STAFF_PERIODS);
+        callback(DEFAULT_STAFF_PERIODS);
+      } else {
+        const periodsList: KpiStaffPeriod[] = [];
+        snapshot.forEach(docSnap => {
+          periodsList.push({ id: docSnap.id, ...docSnap.data() } as KpiStaffPeriod);
+        });
+
+        // Ensure all default 2026-2027 periods (Kỳ I, Kỳ II, Cả năm & 12 tháng) are present
+        const existingIds = new Set(periodsList.map(p => p.id));
+        const missingDefaults = DEFAULT_STAFF_PERIODS.filter(dp => !existingIds.has(dp.id));
+        if (missingDefaults.length > 0) {
+          missingDefaults.forEach(dp => {
+            saveStaffPeriodToFirestore(dp);
+            periodsList.push(dp);
+          });
+        }
+
+        saveStaffPeriodsToCache(periodsList);
+        callback(periodsList);
+      }
+    }, (err) => {
+      console.warn('Firestore subscription warning for staff periods:', err);
+      callback(loadStaffPeriodsFromCache());
+    });
+  } catch (err) {
+    console.warn('Firestore subscription fallback for staff periods:', err);
+    callback(loadStaffPeriodsFromCache());
+    return () => {};
+  }
+};
+
+export const saveStaffPeriodToFirestore = async (period: KpiStaffPeriod) => {
+  const docRef = doc(db, STAFF_COLLECTIONS.PERIODS, period.id);
+  await setDoc(docRef, cleanFirestoreData(period), { merge: true });
+};
+
+export const deleteStaffPeriodFromFirestore = async (periodId: string) => {
+  await deleteDoc(doc(db, STAFF_COLLECTIONS.PERIODS, periodId));
+};
+
+// Criteria Cache Helpers
+const STAFF_CRITERIA_CACHE_KEY = 'kpi_staff_criteria_cache';
+
+export const loadStaffCriteriaFromCache = (): KpiStaffCriterion[] => {
+  try {
+    const raw = localStorage.getItem(STAFF_CRITERIA_CACHE_KEY);
+    return raw ? JSON.parse(raw) : DEFAULT_STAFF_CRITERIA;
+  } catch {
+    return DEFAULT_STAFF_CRITERIA;
+  }
+};
+
+export const saveStaffCriteriaToCache = (criteria: KpiStaffCriterion[]) => {
+  try {
+    localStorage.setItem(STAFF_CRITERIA_CACHE_KEY, JSON.stringify(criteria));
+  } catch (err) {
+    console.error('Failed saving staff criteria to cache:', err);
+  }
+};
+
+export const subscribeStaffCriteria = (callback: (criteria: KpiStaffCriterion[]) => void) => {
+  try {
+    const colRef = collection(db, STAFF_COLLECTIONS.CRITERIA);
+    return onSnapshot(colRef, (snapshot) => {
+      if (snapshot.empty) {
+        DEFAULT_STAFF_CRITERIA.forEach(c => saveStaffCriterionToFirestore(c));
+        callback(DEFAULT_STAFF_CRITERIA);
+      } else {
+        const criteriaList: KpiStaffCriterion[] = [];
+        snapshot.forEach(docSnap => {
+          criteriaList.push({ id: docSnap.id, ...docSnap.data() } as KpiStaffCriterion);
+        });
+        criteriaList.sort((a, b) => a.order - b.order);
+        saveStaffCriteriaToCache(criteriaList);
+        callback(criteriaList);
+      }
+    }, (err) => {
+      console.warn('Firestore subscription warning for staff criteria:', err);
+      callback(loadStaffCriteriaFromCache());
+    });
+  } catch (err) {
+    console.warn('Firestore subscription fallback for staff criteria:', err);
+    callback(loadStaffCriteriaFromCache());
+    return () => {};
+  }
+};
+
+export const saveStaffCriterionToFirestore = async (criterion: KpiStaffCriterion) => {
+  const docRef = doc(db, STAFF_COLLECTIONS.CRITERIA, criterion.id);
+  await setDoc(docRef, cleanFirestoreData(criterion), { merge: true });
+};
+
+export const deleteStaffCriterionFromFirestore = async (criterionId: string) => {
+  await deleteDoc(doc(db, STAFF_COLLECTIONS.CRITERIA, criterionId));
+};
+
 export const loadStaffFormsFromCache = (): KpiStaffForm[] => {
   try {
     const raw = localStorage.getItem(STAFF_FORMS_CACHE_KEY);

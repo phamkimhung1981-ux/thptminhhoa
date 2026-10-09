@@ -169,7 +169,7 @@ export default function KpiVcPrintModal({
                   <th className="border border-black p-1.5 text-left">Nội dung đánh giá / nhiệm vụ chi tiết</th>
                   <th className="border border-black p-1.5 w-12">Điểm tối đa</th>
                   <th className="border border-black p-1.5 w-16">Cá nhân tự chấm</th>
-                  <th className="border border-black p-1.5 w-16">TTCM đánh giá</th>
+                  <th className="border border-black p-1.5 w-16">Tổ trưởng đánh giá</th>
                   <th className="border border-black p-1.5 w-16">CBQL đánh giá</th>
                   <th className="border border-black p-1.5 w-24">Minh chứng / ghi chú</th>
                 </tr>

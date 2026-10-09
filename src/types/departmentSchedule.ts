@@ -13,7 +13,7 @@ export interface DepartmentScheduleDayItem {
 
 export interface DepartmentWeeklySchedule {
   id: string;
-  schoolName: string; // "TRƯỜNG THPT SƠN LƯƠNG"
+  schoolName: string; // "TRƯỜNG THPT MINH HÒA"
   departmentId: string; // id or slug
   departmentName: string; // e.g. "Tổ Toán - Lý - Tin - CN"
   weekNumber: number; // e.g. 5

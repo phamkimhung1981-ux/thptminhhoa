@@ -11,7 +11,7 @@ export function isAdminUser(user?: User | null): boolean {
 }
 
 /**
- * Default System Modules for Trường THPT Sơn Lương
+ * Default System Modules for Trường THPT Minh Hòa
  */
 export const DEFAULT_SYSTEM_MODULES: SystemModule[] = [
   {

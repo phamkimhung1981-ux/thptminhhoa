@@ -23,7 +23,11 @@ import {
   Sun,
   Moon,
   AlertCircle,
-  HelpCircle
+  HelpCircle,
+  History,
+  CheckSquare,
+  Square,
+  AlertOctagon
 } from 'lucide-react';
 import BackButton from '../components/ui/BackButton';
 import { Card } from '../components/ui/Card';
@@ -43,6 +47,12 @@ import { exportSchoolWorkScheduleToWord } from '../utils/schoolWorkScheduleExpor
 import { getWeekInfoByNumber, getAllWeeksInYear, ACADEMIC_YEARS } from '../utils/schoolWeekUtils';
 import SchoolScheduleWordImportModal from '../components/schoolSchedule/SchoolScheduleWordImportModal';
 import AutoResizeTextarea from '../components/ui/AutoResizeTextarea';
+import DeleteScheduleConfirmModal from '../components/schedules/DeleteScheduleConfirmModal';
+import BatchDeleteConfirmModal from '../components/schedules/BatchDeleteConfirmModal';
+import DeleteWeekConfirmModal from '../components/schedules/DeleteWeekConfirmModal';
+import ScheduleAuditLogModal from '../components/schedules/ScheduleAuditLogModal';
+import { checkCanDeleteScheduleTask, checkCanDeleteEntireWeek } from '../utils/schedulePermissions';
+import { SCHOOL_NAME_UPPER } from '../constants/schoolConfig';
 import * as XLSX from 'xlsx';
 
 export default function SchoolWorkSchedulePage() {
@@ -84,6 +94,27 @@ export default function SchoolWorkSchedulePage() {
   const [formStatus, setFormStatus] = useState<string>('Chưa thực hiện');
   const [formNote, setFormNote] = useState<string>('');
 
+  // Delete single task modal state
+  const [deletingTaskInfo, setDeletingTaskInfo] = useState<{
+    dayId: string;
+    dayName: string;
+    dateStr: string;
+    timeSlot: 'morning' | 'afternoon';
+    taskItem: SchoolWorkItem;
+    dutyEvaluator?: string;
+  } | null>(null);
+
+  // Batch delete state
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+  const [isBatchDeleteModalOpen, setIsBatchDeleteModalOpen] = useState(false);
+
+  // Delete entire week modal
+  const [isDeleteWeekModalOpen, setIsDeleteWeekModalOpen] = useState(false);
+
+  // Audit log modal
+  const [isAuditLogModalOpen, setIsAuditLogModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // Permissions (Hiệu trưởng, Phó Hiệu trưởng, BGH, ADMIN, TTCM / Tổ trưởng, Cán bộ quản lý)
   const userRole = (user?.role || '').toUpperCase();
   const userPosition = (user?.position || '').toUpperCase();
@@ -114,6 +145,20 @@ export default function SchoolWorkSchedulePage() {
     userPosition.includes('TỔ TRƯỞNG');
 
   const canEdit = isAdmin || isPrincipalOrVice || isHead || userRole.includes('GIAO_VU') || userRole.includes('NHAN_SU');
+
+  // Permission checks for delete operations in the current view
+  const currentScope: 'all' | 'department' = selectedDeptId === 'all' ? 'all' : 'department';
+  const currentDeletePerm = useMemo(() => {
+    return checkCanDeleteScheduleTask(user, currentScope, selectedDeptId);
+  }, [user, currentScope, selectedDeptId]);
+
+  const canDeleteInView = currentDeletePerm.canDelete || canEdit;
+
+  const currentWeekDeletePerm = useMemo(() => {
+    return checkCanDeleteEntireWeek(user);
+  }, [user]);
+
+  const canDeleteWeekInView = currentWeekDeletePerm.canDelete || isAdmin || isPrincipalOrVice;
 
   // All weeks info
   const allWeeks = useMemo(() => getAllWeeksInYear(selectedYear), [selectedYear]);
@@ -178,7 +223,7 @@ export default function SchoolWorkSchedulePage() {
       const sample = generateSampleSchoolWorkSchedule(selectedWeek, selectedYear, selectedDeptId);
       setSchedule(sample);
       await schoolWorkScheduleService.saveSchedule(sample);
-      showToast(`Đã nạp lịch công việc chuẩn THPT Sơn Lương cho ${currentWeekInfo.label}!`);
+      showToast(`Đã nạp lịch công việc chuẩn THPT Minh Hòa cho ${currentWeekInfo.label}!`);
     } catch (e) {
       console.error(e);
       showToast('Lỗi khi nạp dữ liệu mẫu');
@@ -369,28 +414,246 @@ export default function SchoolWorkSchedulePage() {
     }
   };
 
-  const handleDeleteItem = async (dayId: string, timeSlot: 'morning' | 'afternoon', itemId: string) => {
-    if (!schedule) return;
-    if (!window.confirm('Bạn có chắc chắn muốn xóa công việc này?')) return;
+  // Mở modal xác nhận xóa 1 công việc
+  const handleOpenDeleteSingle = (
+    dayId: string,
+    dayName: string,
+    dateStr: string,
+    timeSlot: 'morning' | 'afternoon',
+    task: SchoolWorkItem,
+    dutyEvaluator?: string
+  ) => {
+    const hasEvaluation = Boolean(
+      (task.status && task.status !== 'Chưa thực hiện') ||
+      task.leaderInCharge ||
+      dutyEvaluator
+    );
+    const perm = checkCanDeleteScheduleTask(user, currentScope, selectedDeptId, hasEvaluation);
+    if (!perm.canDelete) {
+      showToast(perm.reason || 'Bạn không có quyền xóa công việc này.');
+      return;
+    }
 
+    setDeletingTaskInfo({
+      dayId,
+      dayName,
+      dateStr,
+      timeSlot,
+      taskItem: task,
+      dutyEvaluator
+    });
+  };
+
+  // Xác nhận xóa 1 công việc
+  const handleConfirmDeleteSingleTask = async () => {
+    if (!schedule || !deletingTaskInfo) return;
+    setIsDeleting(true);
     try {
-      const newDays = schedule.days.map(d => {
-        if (d.id !== dayId) return d;
-        return {
-          ...d,
-          [timeSlot === 'morning' ? 'morning_tasks' : 'afternoon_tasks']: (
-            timeSlot === 'morning' ? d.morning_tasks : d.afternoon_tasks
-          ).filter(t => t.id !== itemId)
-        };
+      // 1. Gọi backend API để xác thực quyền phía server (403 nếu vi phạm)
+      try {
+        const resp = await fetch('/api/schedules/delete-task', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user,
+            scope: currentScope,
+            departmentId: selectedDeptId,
+            taskId: deletingTaskInfo.taskItem.id,
+            taskContent: deletingTaskInfo.taskItem.content,
+            dayName: deletingTaskInfo.dayName
+          })
+        });
+        if (resp.status === 403) {
+          const errData = await resp.json().catch(() => ({}));
+          showToast(errData.error || '403 Forbidden: Không có quyền xóa lịch giao việc.');
+          setDeletingTaskInfo(null);
+          return;
+        }
+      } catch (apiErr) {
+        console.warn('Backend API notification warning:', apiErr);
+      }
+
+      // 2. Xóa khỏi database qua service và ghi Audit Log
+      const { updatedSchedule } = await schoolWorkScheduleService.deleteTaskItem(
+        schedule,
+        deletingTaskInfo.dayId,
+        deletingTaskInfo.timeSlot,
+        deletingTaskInfo.taskItem.id,
+        user
+      );
+
+      setSchedule(updatedSchedule);
+      setSelectedTaskIds(prev => {
+        const next = new Set(prev);
+        next.delete(deletingTaskInfo.taskItem.id);
+        return next;
+      });
+      setDeletingTaskInfo(null);
+      showToast('Đã xóa lịch giao việc thành công.');
+    } catch (e: any) {
+      console.error(e);
+      showToast(e.message || 'Không thể xóa lịch giao việc. Vui lòng thử lại.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Chọn / bỏ chọn công việc để xóa hàng loạt
+  const handleToggleSelectTask = (taskId: string) => {
+    setSelectedTaskIds(prev => {
+      const next = new Set(prev);
+      if (next.has(taskId)) {
+        next.delete(taskId);
+      } else {
+        next.add(taskId);
+      }
+      return next;
+    });
+  };
+
+  // Chọn tất cả công việc trong tuần
+  const handleSelectAllTasks = () => {
+    if (!schedule) return;
+    const allIds = new Set<string>();
+    schedule.days.forEach(d => {
+      d.morning_tasks.forEach(t => allIds.add(t.id));
+      d.afternoon_tasks.forEach(t => allIds.add(t.id));
+    });
+    setSelectedTaskIds(allIds);
+  };
+
+  // Bỏ chọn tất cả
+  const handleDeselectAllTasks = () => {
+    setSelectedTaskIds(new Set());
+  };
+
+  // Lấy chi tiết các công việc đã chọn để hiển thị trong modal xóa hàng loạt
+  const selectedTasksDetails = useMemo(() => {
+    if (!schedule || selectedTaskIds.size === 0) return [];
+    const list: {
+      dayId: string;
+      dayName: string;
+      dateStr: string;
+      timeSlot: 'morning' | 'afternoon';
+      itemId: string;
+      content: string;
+      hasEvaluation?: boolean;
+    }[] = [];
+
+    schedule.days.forEach(day => {
+      day.morning_tasks.forEach(t => {
+        if (selectedTaskIds.has(t.id)) {
+          list.push({
+            dayId: day.id,
+            dayName: day.day_of_week,
+            dateStr: day.date_str || day.date,
+            timeSlot: 'morning',
+            itemId: t.id,
+            content: t.content,
+            hasEvaluation: Boolean((t.status && t.status !== 'Chưa thực hiện') || t.leaderInCharge)
+          });
+        }
       });
 
-      const updatedSchedule = { ...schedule, days: newDays, updated_at: new Date().toISOString() };
+      day.afternoon_tasks.forEach(t => {
+        if (selectedTaskIds.has(t.id)) {
+          list.push({
+            dayId: day.id,
+            dayName: day.day_of_week,
+            dateStr: day.date_str || day.date,
+            timeSlot: 'afternoon',
+            itemId: t.id,
+            content: t.content,
+            hasEvaluation: Boolean((t.status && t.status !== 'Chưa thực hiện') || t.leaderInCharge)
+          });
+        }
+      });
+    });
+
+    return list;
+  }, [schedule, selectedTaskIds]);
+
+  // Xác nhận xóa hàng loạt
+  const handleConfirmBatchDelete = async () => {
+    if (!schedule || selectedTasksDetails.length === 0) return;
+    setIsDeleting(true);
+    try {
+      try {
+        const resp = await fetch('/api/schedules/batch-delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user,
+            scope: currentScope,
+            departmentId: selectedDeptId,
+            count: selectedTasksDetails.length
+          })
+        });
+        if (resp.status === 403) {
+          const errData = await resp.json().catch(() => ({}));
+          showToast(errData.error || '403 Forbidden: Không có quyền xóa lịch giao việc.');
+          setIsBatchDeleteModalOpen(false);
+          return;
+        }
+      } catch (e) {}
+
+      const itemsToDelete = selectedTasksDetails.map(t => ({
+        dayId: t.dayId,
+        timeSlot: t.timeSlot,
+        itemId: t.itemId
+      }));
+
+      const { updatedSchedule, deletedCount } = await schoolWorkScheduleService.deleteBatchTaskItems(
+        schedule,
+        itemsToDelete,
+        user
+      );
+
       setSchedule(updatedSchedule);
-      await schoolWorkScheduleService.saveSchedule(updatedSchedule);
-      showToast('Đã xóa công việc!');
-    } catch (e) {
+      setSelectedTaskIds(new Set());
+      setIsBatchDeleteModalOpen(false);
+      showToast(`Đã xóa thành công ${deletedCount} công việc.`);
+    } catch (e: any) {
       console.error(e);
-      showToast('Lỗi khi xóa công việc');
+      showToast(e.message || 'Không thể xóa các công việc đã chọn. Vui lòng thử lại.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Xác nhận xóa toàn bộ lịch tuần
+  const handleConfirmDeleteEntireWeek = async () => {
+    if (!schedule) return;
+    setIsDeleting(true);
+    try {
+      try {
+        const resp = await fetch('/api/schedules/delete-week', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user,
+            weekNumber: schedule.week_number,
+            confirmationPhrase: 'XÓA LỊCH TUẦN'
+          })
+        });
+        if (resp.status === 403) {
+          const errData = await resp.json().catch(() => ({}));
+          showToast(errData.error || '403 Forbidden: Không có quyền xóa toàn bộ lịch tuần.');
+          setIsDeleteWeekModalOpen(false);
+          return;
+        }
+      } catch (e) {}
+
+      const updated = await schoolWorkScheduleService.deleteEntireWeek(schedule, user);
+      setSchedule(updated);
+      setSelectedTaskIds(new Set());
+      setIsDeleteWeekModalOpen(false);
+      showToast(`Đã xóa toàn bộ lịch Tuần ${schedule.week_number} thành công.`);
+    } catch (e: any) {
+      console.error(e);
+      showToast(e.message || 'Không thể xóa lịch tuần. Vui lòng thử lại.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -425,7 +688,7 @@ export default function SchoolWorkSchedulePage() {
     if (!schedule) return;
     try {
       const dataRows: any[] = [
-        ['TRƯỜNG THPT SƠN LƯƠNG'],
+        ['TRƯỜNG THPT MINH HÒA'],
         [`TỔ: ${schedule.department_name}`],
         [`TUẦN: ${schedule.week_number}`],
         [`(Từ ngày ${currentWeekInfo.startDateStr} đến ngày ${currentWeekInfo.endDateStr} năm 2026)`],
@@ -448,7 +711,7 @@ export default function SchoolWorkSchedulePage() {
       const ws = XLSX.utils.aoa_to_sheet(dataRows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'LichCongViec');
-      XLSX.writeFile(wb, `Lich_Cong_Viec_Tuan_${schedule.week_number}_THPT_Son_Luong.xlsx`);
+      XLSX.writeFile(wb, `Lich_Cong_Viec_Tuan_${schedule.week_number}_THPT_Minh_Hoa.xlsx`);
       showToast('Đã xuất file Excel thành công!');
     } catch (e) {
       console.error(e);
@@ -575,12 +838,36 @@ export default function SchoolWorkSchedulePage() {
                 onClick={handleResetToSample}
                 disabled={saving}
                 className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs sm:text-sm font-black rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                title="Nạp lại nội dung công việc mẫu chuẩn THPT Sơn Lương"
+                title="Nạp lại nội dung công việc mẫu chuẩn THPT Minh Hòa"
               >
                 <Sparkles size={16} />
                 <span>Nạp Mẫu Chuẩn Trường</span>
               </button>
             </>
+          )}
+
+          {/* Nút Xem Nhật Ký Xóa (Audit Log) */}
+          <button
+            type="button"
+            onClick={() => setIsAuditLogModalOpen(true)}
+            className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs sm:text-sm font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer border border-slate-600"
+            title="Xem lịch sử xóa lịch giao việc (Audit Log)"
+          >
+            <History size={16} />
+            <span>Nhật ký xóa</span>
+          </button>
+
+          {/* Nút Xóa Cả Tuần (Dành riêng cho Admin / Hiệu trưởng) */}
+          {canDeleteWeekInView && (
+            <button
+              type="button"
+              onClick={() => setIsDeleteWeekModalOpen(true)}
+              className="px-3 py-2 bg-rose-950/80 hover:bg-rose-900 text-rose-300 hover:text-white text-xs sm:text-sm font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer border border-rose-800/80"
+              title="Xóa toàn bộ các công việc trong tuần này (Yêu cầu xác nhận 2 bước)"
+            >
+              <AlertOctagon size={16} className="text-rose-400" />
+              <span>Xóa lịch cả tuần</span>
+            </button>
           )}
 
           <button
@@ -614,14 +901,14 @@ export default function SchoolWorkSchedulePage() {
         </div>
       </div>
 
-      {/* MAIN DOCUMENT CONTAINER (CHUẨN FORM MẪU THPT SƠN LƯƠNG) */}
+      {/* MAIN DOCUMENT CONTAINER */}
       <div className="bg-white rounded-[24px] border border-slate-200/90 shadow-lg p-6 sm:p-10 space-y-6 text-slate-900 print:p-0 print:border-none print:shadow-none">
         {/* 1. DOCUMENT HEADER */}
         <div className="border-b border-slate-200 pb-5 space-y-2">
           <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
             <div>
               <h2 className="text-sm sm:text-base font-black tracking-tight text-slate-900 uppercase">
-                TRƯỜNG THPT SƠN LƯƠNG
+                {SCHOOL_NAME_UPPER}
               </h2>
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-xs sm:text-sm font-black text-slate-900 uppercase">
@@ -724,27 +1011,30 @@ export default function SchoolWorkSchedulePage() {
                                   </p>
 
                                   {/* ACTION BUTTONS (CHO PHÉP SỬA VÀ XÓA CÔNG VIỆC) */}
-                                  {canEdit && (
-                                    <div className="flex items-center gap-1.5 no-print shrink-0">
+                                  <div className="flex items-center gap-1.5 no-print shrink-0">
+                                    {canEdit && (
                                       <button
                                         type="button"
                                         onClick={() => openEditTaskModal(day.id, dIdx, 'morning', task)}
-                                        className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-black text-blue-700 bg-blue-50 hover:bg-blue-600 hover:text-white border border-blue-300 rounded-lg shadow-2xs transition-all cursor-pointer"
+                                        className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-600 hover:text-white border border-blue-300 rounded-lg shadow-2xs transition-all cursor-pointer"
                                         title="Nhấn để sửa thông tin công việc này"
                                       >
                                         <Edit2 size={12} />
                                         <span>Sửa</span>
                                       </button>
+                                    )}
+                                    {canDeleteInView && (
                                       <button
                                         type="button"
-                                        onClick={() => handleDeleteItem(day.id, 'morning', task.id)}
-                                        className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                                        title="Xóa công việc"
+                                        onClick={() => handleOpenDeleteSingle(day.id, day.day_of_week, day.date_str || day.date, 'morning', task, day.duty_evaluator)}
+                                        className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold text-rose-700 bg-rose-50 hover:bg-rose-600 hover:text-white border border-rose-300 rounded-lg shadow-2xs transition-all cursor-pointer"
+                                        title="Xóa công việc này khỏi lịch giao việc"
                                       >
-                                        <Trash2 size={13} />
+                                        <Trash2 size={12} />
+                                        <span>Xóa</span>
                                       </button>
-                                    </div>
-                                  )}
+                                    )}
+                                  </div>
                                 </div>
 
                                 {/* Metadata Badges */}
@@ -804,27 +1094,30 @@ export default function SchoolWorkSchedulePage() {
                                   </p>
 
                                   {/* ACTION BUTTONS (CHO PHÉP SỬA VÀ XÓA CÔNG VIỆC) */}
-                                  {canEdit && (
-                                    <div className="flex items-center gap-1.5 no-print shrink-0">
+                                  <div className="flex items-center gap-1.5 no-print shrink-0">
+                                    {canEdit && (
                                       <button
                                         type="button"
                                         onClick={() => openEditTaskModal(day.id, dIdx, 'afternoon', task)}
-                                        className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-black text-blue-700 bg-blue-50 hover:bg-blue-600 hover:text-white border border-blue-300 rounded-lg shadow-2xs transition-all cursor-pointer"
+                                        className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-600 hover:text-white border border-blue-300 rounded-lg shadow-2xs transition-all cursor-pointer"
                                         title="Nhấn để sửa thông tin công việc này"
                                       >
                                         <Edit2 size={12} />
                                         <span>Sửa</span>
                                       </button>
+                                    )}
+                                    {canDeleteInView && (
                                       <button
                                         type="button"
-                                        onClick={() => handleDeleteItem(day.id, 'afternoon', task.id)}
-                                        className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                                        title="Xóa công việc"
+                                        onClick={() => handleOpenDeleteSingle(day.id, day.day_of_week, day.date_str || day.date, 'afternoon', task, day.duty_evaluator)}
+                                        className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold text-rose-700 bg-rose-50 hover:bg-rose-600 hover:text-white border border-rose-300 rounded-lg shadow-2xs transition-all cursor-pointer"
+                                        title="Xóa công việc này khỏi lịch giao việc"
                                       >
-                                        <Trash2 size={13} />
+                                        <Trash2 size={12} />
+                                        <span>Xóa</span>
                                       </button>
-                                    </div>
-                                  )}
+                                    )}
+                                  </div>
                                 </div>
 
                                 {/* Metadata Badges */}
@@ -1075,9 +1368,10 @@ export default function SchoolWorkSchedulePage() {
                   {[
                     'Toàn thể CBGVNV',
                     'BGH, Đoàn trường',
-                    'Tổ Toán - Lý - Tin - CN',
-                    'Tổ Hóa - Sinh - GDQPAN - NN',
-                    'Tổ Văn - Sử - Địa - GDKT&PL - AN',
+                    'Tổ Toán - Công Nghệ',
+                    'Tổ Văn - Sử - Địa- GDKT',
+                    'Tổ Lý - Hóa- Sinh',
+                    'Tổ Ngoại ngữ - Tin học– GDTC- GDQP&AN',
                     'Tổ Văn phòng',
                     'GVCN 12C'
                   ].map(assigneeTag => (
@@ -1198,6 +1492,50 @@ export default function SchoolWorkSchedulePage() {
           await schoolWorkScheduleService.saveSchedule(imported);
           showToast(`Đã tải và áp dụng lịch công việc từ file Word thành công (Tuần ${imported.week_number})!`);
         }}
+      />
+
+      {/* MODAL XÁC NHẬN XÓA 1 CÔNG VIỆC */}
+      {deletingTaskInfo && (
+        <DeleteScheduleConfirmModal
+          isOpen={Boolean(deletingTaskInfo)}
+          onClose={() => setDeletingTaskInfo(null)}
+          onConfirm={handleConfirmDeleteSingleTask}
+          taskItem={deletingTaskInfo.taskItem}
+          dayName={deletingTaskInfo.dayName}
+          dateStr={deletingTaskInfo.dateStr}
+          timeSlot={deletingTaskInfo.timeSlot}
+          dutyEvaluator={deletingTaskInfo.dutyEvaluator}
+          isSubmitting={isDeleting}
+        />
+      )}
+
+      {/* MODAL XÓA HÀNG LOẠT CÔNG VIỆC */}
+      {isBatchDeleteModalOpen && selectedTasksDetails.length > 0 && (
+        <BatchDeleteConfirmModal
+          isOpen={isBatchDeleteModalOpen}
+          onClose={() => setIsBatchDeleteModalOpen(false)}
+          onConfirm={handleConfirmBatchDelete}
+          items={selectedTasksDetails}
+          isSubmitting={isDeleting}
+        />
+      )}
+
+      {/* MODAL XÓA TOÀN BỘ LỊCH CẢ TUẦN */}
+      {isDeleteWeekModalOpen && schedule && (
+        <DeleteWeekConfirmModal
+          isOpen={isDeleteWeekModalOpen}
+          onClose={() => setIsDeleteWeekModalOpen(false)}
+          onConfirm={handleConfirmDeleteEntireWeek}
+          weekNumber={selectedWeek}
+          departmentName={schedule.department_name || 'Toàn trường'}
+          isSubmitting={isDeleting}
+        />
+      )}
+
+      {/* MODAL NHẬT KÝ XÓA (AUDIT LOG) */}
+      <ScheduleAuditLogModal
+        isOpen={isAuditLogModalOpen}
+        onClose={() => setIsAuditLogModalOpen(false)}
       />
     </div>
   );

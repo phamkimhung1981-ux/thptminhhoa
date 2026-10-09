@@ -19,7 +19,7 @@ export interface OfficialDocument {
   title: string; // Trích yếu nội dung
   category: DocumentCategory; // 'incoming' | 'outgoing' | 'internal'
   documentType: DocumentType;
-  issuingAuthority: string; // Cơ quan ban hành (Sở GD&ĐT Phú Thọ, THPT Sơn Lương...)
+  issuingAuthority: string; // Cơ quan ban hành (Sở GD&ĐT Phú Thọ, THPT Minh Hòa...)
   issueDate: string; // Ngày ban hành (YYYY-MM-DD)
   receivedDate?: string; // Ngày đến/xử lý
   urgency: DocumentUrgency;

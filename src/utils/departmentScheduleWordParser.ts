@@ -27,7 +27,7 @@ export async function parseDepartmentScheduleWord(file: File | ArrayBuffer): Pro
     const rawText = rawTextResult.value || '';
 
     // Initialize result with defaults
-    let schoolName = 'TRƯỜNG THPT SƠN LƯƠNG';
+    let schoolName = 'TRƯỜNG THPT MINH HÒA';
     let departmentName = '';
     let weekNumber = 1;
     let startDate = '';
@@ -239,7 +239,7 @@ export async function parseDepartmentScheduleWord(file: File | ArrayBuffer): Pro
     console.error('Error parsing Word document for department schedule:', error);
     return {
       success: false,
-      schoolName: 'TRƯỜNG THPT SƠN LƯƠNG',
+      schoolName: 'TRƯỜNG THPT MINH HÒA',
       departmentName: 'Tổ chuyên môn',
       weekNumber: 1,
       startDate: '',

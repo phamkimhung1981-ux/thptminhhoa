@@ -93,7 +93,7 @@ export const youthDutyService = {
     }
 
     const cached = localStorage.getItem(CACHE_KEYS.SCHEDULES);
-    if (cached) {
+    if (cached !== null) {
       try {
         const list = JSON.parse(cached) as YouthDutySchedule[];
         return this.filterAndSortSchedules(list, academicYear, fromWeek, toWeek);
@@ -102,7 +102,12 @@ export const youthDutyService = {
       }
     }
 
-    return this.filterAndSortSchedules(DEFAULT_SAMPLE_SCHEDULES, academicYear, fromWeek, toWeek);
+    // Initialize cache with sample schedules only if never initialized
+    if (localStorage.getItem(CACHE_KEYS.SCHEDULES) === null) {
+      localStorage.setItem(CACHE_KEYS.SCHEDULES, JSON.stringify(DEFAULT_SAMPLE_SCHEDULES));
+      return this.filterAndSortSchedules(DEFAULT_SAMPLE_SCHEDULES, academicYear, fromWeek, toWeek);
+    }
+    return [];
   },
 
   filterAndSortSchedules(
@@ -114,9 +119,9 @@ export const youthDutyService = {
     let filtered = [...list];
 
     if (academicYear && academicYear !== 'All') {
-      const normAY = academicYear.replace(/[\u2010-\u2015]/g, '-').trim();
+      const normAY = academicYear.replace(/[\u2010-\u2015]/g, '-').replace(/\s+/g, '').trim().toLowerCase();
       filtered = filtered.filter(s => {
-        const sAY = (s.academicYear || '').replace(/[\u2010-\u2015]/g, '-').trim();
+        const sAY = (s.academicYear || '').replace(/[\u2010-\u2015]/g, '-').replace(/\s+/g, '').trim().toLowerCase();
         return !sAY || sAY === normAY;
       });
     }
@@ -124,22 +129,21 @@ export const youthDutyService = {
     if (fromWeek !== undefined && fromWeek > 0) {
       if (toWeek !== undefined && toWeek >= fromWeek) {
         filtered = filtered.filter(s => {
-          const w = s.weekNumber;
-          const toW = s.toWeekNumber || w;
-          // Check if schedule overlaps with requested range
+          const w = Number(s.weekNumber);
+          const toW = s.toWeekNumber ? Number(s.toWeekNumber) : w;
           return (w >= fromWeek && w <= toWeek) || (toW >= fromWeek && w <= toWeek);
         });
       } else {
         filtered = filtered.filter(s => {
-          const w = s.weekNumber;
-          const toW = s.toWeekNumber || w;
+          const w = Number(s.weekNumber);
+          const toW = s.toWeekNumber ? Number(s.toWeekNumber) : w;
           return fromWeek >= w && fromWeek <= toW;
         });
       }
     }
 
     return filtered.sort((a, b) => {
-      if (a.weekNumber !== b.weekNumber) return a.weekNumber - b.weekNumber;
+      if (a.weekNumber !== b.weekNumber) return Number(a.weekNumber) - Number(b.weekNumber);
       return (a.dayOfWeekNumber || 0) - (b.dayOfWeekNumber || 0);
     });
   },
@@ -172,7 +176,7 @@ export const youthDutyService = {
     try {
       await setDoc(doc(db, COLLECTIONS.SCHEDULES, id), sanitize(record), { merge: true });
     } catch (e) {
-      console.warn('Firestore saveSchedule error:', e);
+      console.warn('Firestore saveSchedule warning (saved locally):', e);
     }
 
     return record;
@@ -186,8 +190,100 @@ export const youthDutyService = {
     try {
       await deleteDoc(doc(db, COLLECTIONS.SCHEDULES, id));
     } catch (e) {
-      console.warn('Firestore deleteSchedule error:', e);
+      console.warn('Firestore deleteSchedule warning (deleted locally):', e);
     }
+  },
+
+  async deleteEntireWeek(
+    weekNumber: number,
+    academicYear?: string,
+    specificIds?: string[]
+  ): Promise<number> {
+    const all = await this.getSchedules();
+    const targetWeekNum = Number(weekNumber);
+    const cleanAY = (y: string) => (y || '').replace(/[\u2010-\u2015]/g, '-').replace(/\s+/g, '').trim().toLowerCase();
+    const targetNormAY = academicYear ? cleanAY(academicYear) : '';
+
+    const deleteIds = new Set<string>();
+
+    // 1. Check specificIds if supplied
+    if (specificIds && specificIds.length > 0) {
+      specificIds.forEach(id => {
+        if (id) deleteIds.add(id);
+      });
+    }
+
+    // 2. Match by week and academic year
+    all.forEach(s => {
+      const sAY = cleanAY(s.academicYear || '');
+      const ayMatch = !targetNormAY || !sAY || sAY === targetNormAY;
+      const sFrom = Number(s.weekNumber);
+      const sTo = s.toWeekNumber ? Number(s.toWeekNumber) : sFrom;
+      const weekMatch = sFrom === targetWeekNum || (sFrom <= targetWeekNum && sTo >= targetWeekNum);
+
+      if (ayMatch && weekMatch) {
+        deleteIds.add(s.id);
+      }
+    });
+
+    if (deleteIds.size === 0) return 0;
+
+    const remaining = all.filter(s => !deleteIds.has(s.id));
+    localStorage.setItem(CACHE_KEYS.SCHEDULES, JSON.stringify(remaining));
+
+    for (const id of Array.from(deleteIds)) {
+      try {
+        await deleteDoc(doc(db, COLLECTIONS.SCHEDULES, id));
+      } catch (e) {
+        console.warn('Firestore deleteEntireWeek warning for', id, e);
+      }
+    }
+    return deleteIds.size;
+  },
+
+  async deleteWeekRange(
+    fromWeek: number,
+    toWeek: number,
+    academicYear?: string,
+    specificIds?: string[]
+  ): Promise<number> {
+    const all = await this.getSchedules();
+    const cleanAY = (y: string) => (y || '').replace(/[\u2010-\u2015]/g, '-').replace(/\s+/g, '').trim().toLowerCase();
+    const targetNormAY = academicYear ? cleanAY(academicYear) : '';
+
+    const deleteIds = new Set<string>();
+
+    if (specificIds && specificIds.length > 0) {
+      specificIds.forEach(id => {
+        if (id) deleteIds.add(id);
+      });
+    }
+
+    all.forEach(s => {
+      const sAY = cleanAY(s.academicYear || '');
+      const ayMatch = !targetNormAY || !sAY || sAY === targetNormAY;
+      const sFrom = Number(s.weekNumber);
+      const sTo = s.toWeekNumber ? Number(s.toWeekNumber) : sFrom;
+      const rangeMatch = (sFrom >= fromWeek && sFrom <= toWeek) || (sTo >= fromWeek && sTo <= toWeek) || (sFrom <= fromWeek && sTo >= toWeek);
+
+      if (ayMatch && rangeMatch) {
+        deleteIds.add(s.id);
+      }
+    });
+
+    if (deleteIds.size === 0) return 0;
+
+    const remaining = all.filter(s => !deleteIds.has(s.id));
+    localStorage.setItem(CACHE_KEYS.SCHEDULES, JSON.stringify(remaining));
+
+    for (const id of Array.from(deleteIds)) {
+      try {
+        await deleteDoc(doc(db, COLLECTIONS.SCHEDULES, id));
+      } catch (e) {
+        console.warn('Firestore deleteWeekRange warning for', id, e);
+      }
+    }
+    return deleteIds.size;
   },
 
   async copyWeekSchedules(
@@ -284,7 +380,7 @@ export const youthDutyService = {
     try {
       await setDoc(doc(db, COLLECTIONS.TASKS, id), sanitize(record), { merge: true });
     } catch (e) {
-      console.warn('Firestore saveTaskConfig error:', e);
+      console.warn('Firestore saveTaskConfig warning (saved locally):', e);
     }
   },
 
@@ -296,7 +392,7 @@ export const youthDutyService = {
     try {
       await deleteDoc(doc(db, COLLECTIONS.TASKS, id));
     } catch (e) {
-      console.warn('Firestore deleteTaskConfig error:', e);
+      console.warn('Firestore deleteTaskConfig warning (deleted locally):', e);
     }
   },
 

@@ -40,7 +40,7 @@ export const exportVcSummaryToExcel = (
       'Họ và tên': f.employeeName,
       'Mã cán bộ': f.employeeCode || '',
       'Chức vụ': f.position,
-      'Tổ / Đơn vị công tác': f.department || 'Trường THPT Sơn Lương',
+      'Tổ / Đơn vị công tác': f.department || 'Trường THPT Minh Hòa',
       'Kỳ đánh giá': f.periodName,
       'Năm học': f.academicYear || academicYear,
       'Nhóm I (Tối đa 15)': groupI,
@@ -95,7 +95,7 @@ export const exportSingleVcFormToExcel = (form: KpiVcForm, ratingConfigs?: KpiVc
   );
   const headerInfo = [
     { A: 'SỞ GD&ĐT TỈNH PHÚ THỌ', B: '', C: 'CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM' },
-    { A: 'TRƯỜNG THPT SƠN LƯƠNG', B: '', C: 'Độc lập – Tự do – Hạnh phúc' },
+    { A: 'TRƯỜNG THPT MINH HÒA', B: '', C: 'Độc lập – Tự do – Hạnh phúc' },
     { A: '', B: '', C: '' },
     { A: `PHIẾU ĐÁNH GIÁ, CHẤM ĐIỂM NĂM HỌC ${form.academicYear || '2025-2026'}`, B: '', C: '' },
     { A: '(Áp dụng đối với viên chức không giữ chức vụ lãnh đạo, quản lý)', B: '', C: '' },

@@ -12,7 +12,7 @@ import {
   getEligibleStaffMembers 
 } from '../lib/kpiStaffData';
 import { exportStaffSummaryToExcel, exportStaffFormToWord } from '../utils/kpiStaffExport';
-import { deleteAllStaffFormsFromFirestore, deleteStaffFormFromFirestore } from '../services/kpiStaffService';
+import { deleteAllStaffFormsFromFirestore, deleteStaffFormFromFirestore, deleteStaffPeriodFromFirestore } from '../services/kpiStaffService';
 
 import KpiStaffPeriodManagerModal from '../components/kpiStaff/KpiStaffPeriodManagerModal';
 import KpiStaffDocumentModal from '../components/kpiStaff/KpiStaffDocumentModal';
@@ -115,11 +115,17 @@ export default function KpiStaff() {
     setKpiStaffPeriods(updated);
   };
 
-  const handleDeletePeriod = (id: string) => {
-    const updated = periods.filter(p => p.id !== id);
-    setKpiStaffPeriods(updated);
-    if (selectedPeriodId === id && updated.length > 0) {
-      setSelectedPeriodId(updated[0].id);
+  const handleDeletePeriod = async (id: string) => {
+    try {
+      await deleteStaffPeriodFromFirestore(id);
+      const updated = periods.filter(p => p.id !== id);
+      setKpiStaffPeriods(updated);
+      if (selectedPeriodId === id && updated.length > 0) {
+        setSelectedPeriodId(updated[0].id);
+      }
+    } catch (e) {
+      console.error('Error deleting period:', e);
+      alert('Lỗi khi xóa kỳ đánh giá khỏi cơ sở dữ liệu.');
     }
   };
 
@@ -177,7 +183,7 @@ export default function KpiStaff() {
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-700/80 rounded-full text-xs font-extrabold text-emerald-200 border border-emerald-500/30">
-              <UserCheck size={14} /> SỞ GD&ĐT PHÚ THỌ - THPT SƠN LƯƠNG
+              <UserCheck size={14} /> SỞ GD&ĐT PHÚ THỌ - THPT MINH HÒA
             </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
               PHIẾU ĐÁNH GIÁ, CHẤM ĐIỂM KPI NHÂN VIÊN
@@ -268,36 +274,44 @@ export default function KpiStaff() {
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        {/* Row 1: Dropdown Chọn Kỳ Đánh Giá & Search/Filters */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           
-          {/* Period Selector Tabs */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
-            <span className="text-xs font-extrabold text-slate-700 uppercase tracking-wider shrink-0 flex items-center gap-1">
-              <Calendar size={14} className="text-emerald-700" /> Kỳ:
+          {/* Dropdown Chọn Kỳ Đánh Giá (Bao gồm Kỳ I, Kỳ II, Cả năm và đầy đủ 12 tháng năm học 2026-2027) */}
+          <div className="flex items-center gap-2.5 flex-1 max-w-md">
+            <span className="text-xs font-black text-emerald-950 uppercase tracking-wider shrink-0 flex items-center gap-1.5">
+              <Calendar size={15} className="text-emerald-700" /> Kỳ đánh giá:
             </span>
-            {periods.map(p => {
-              const isSelected = p.id === selectedPeriodId;
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => setSelectedPeriodId(p.id)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
-                    isSelected
-                      ? 'bg-emerald-800 text-white shadow-md'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  {p.name}
-                  {p.status === 'locked' && <Lock size={12} className="text-rose-300" />}
-                </button>
-              );
-            })}
+            <select
+              value={selectedPeriodId}
+              onChange={e => setSelectedPeriodId(e.target.value)}
+              className="w-full px-3 py-2 bg-emerald-50/70 border-2 border-emerald-300 rounded-xl text-xs font-bold text-emerald-950 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-xs"
+            >
+              <optgroup label="📋 Tổng kết (Học kỳ & Cả năm)">
+                {periods
+                  .filter(p => p.periodType === 'term' || p.periodType === 'year')
+                  .map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} {p.status === 'locked' ? '🔒 (Đã khóa)' : ''}
+                    </option>
+                  ))}
+              </optgroup>
+              <optgroup label="📅 Các tháng đánh giá năm học 2026-2027">
+                {periods
+                  .filter(p => p.periodType === 'month' || (!p.periodType && !p.name.includes('năm') && !p.name.includes('kỳ')))
+                  .map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} {p.status === 'locked' ? '🔒 (Đã khóa)' : ''}
+                    </option>
+                  ))}
+              </optgroup>
+            </select>
           </div>
 
           {/* Search & Select Filters */}
           <div className="flex flex-wrap items-center gap-2.5">
-            <div className="relative flex-1 sm:w-64">
+            <div className="relative flex-1 sm:w-56">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
@@ -330,6 +344,36 @@ export default function KpiStaff() {
             </select>
           </div>
 
+        </div>
+
+        {/* Row 2: Thanh nút chọn nhanh kỳ đánh giá */}
+        <div className="pt-2 border-t border-slate-100 flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider shrink-0">
+            Chọn nhanh:
+          </span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {periods.map(p => {
+              const isSelected = p.id === selectedPeriodId;
+              const isTermOrYear = p.periodType === 'term' || p.periodType === 'year';
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => setSelectedPeriodId(p.id)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1 cursor-pointer ${
+                    isSelected
+                      ? 'bg-emerald-800 text-white shadow-xs'
+                      : isTermOrYear
+                      ? 'bg-emerald-50 text-emerald-900 border border-emerald-200 hover:bg-emerald-100'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                  title={p.description || p.name}
+                >
+                  {p.name}
+                  {p.status === 'locked' && <Lock size={11} className={isSelected ? "text-rose-200" : "text-rose-500"} />}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -398,6 +442,15 @@ export default function KpiStaff() {
 
                       <td className="p-4 text-center">
                         <span className="font-black text-slate-900 text-sm">{finalScore} / 100đ</span>
+                        <div className="flex flex-col items-center gap-0.5 text-[10px] mt-1 font-semibold">
+                          <span className="text-blue-700">Tự: {f.totalScore}đ</span>
+                          <span className="text-purple-800 font-bold bg-purple-50 px-1.5 py-0.2 rounded border border-purple-200">
+                            Tổ trưởng: {f.ttcmTotalScore !== null && f.ttcmTotalScore !== undefined ? `${f.ttcmTotalScore}đ` : '---'}
+                          </span>
+                          <span className="text-amber-800">
+                            BGH: {f.managerTotalScore !== null && f.managerTotalScore !== undefined ? `${f.managerTotalScore}đ` : '---'}
+                          </span>
+                        </div>
                       </td>
 
                       <td className="p-4">

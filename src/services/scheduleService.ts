@@ -37,7 +37,7 @@ export function createEmptyScheduleForWeek(
       date_str: dateStr,
       morning_events: [],
       afternoon_events: [],
-      duty_leader: idx === 1 || idx === 2 ? 'Ông Hòa' : idx === 3 || idx === 4 ? 'Ông Hùng' : 'Ông Sáng'
+      duty_leader: idx === 1 || idx === 2 ? 'Thầy Lương' : idx === 3 || idx === 4 ? 'Thầy Quỳnh' : 'Thầy Phương'
     };
   });
 
@@ -54,12 +54,12 @@ export function createEmptyScheduleForWeek(
     duty_week: `Lớp ${weekNumber === 3 ? '12C' : weekNumber === 4 ? '12B' : '12A'}`,
     school_year: academicYear,
     title: `LỊCH CÔNG TÁC TUẦN ${weekNumber}`,
-    header_text: 'SỞ GD&ĐT PHÚ THỌ - TRƯỜNG THPT SƠN LƯƠNG',
+    header_text: 'SỞ GD&ĐT PHÚ THỌ - TRƯỜNG THPT MINH HÒA',
     days,
     footer: {
       working_time: 'Thời gian làm việc: Sáng từ 7h00 - 11h30; Chiều từ 13h30 - 17h00',
       recipients: '- BGH;\n- Niêm yết bảng tin;\n- Lưu VT.',
-      principal_name: 'Nguyễn Quang Sáng'
+      principal_name: 'Trịnh Việt Phương'
     },
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
@@ -78,7 +78,7 @@ export function generateSampleWeek3Schedule(academicYear: string = '2026–2027'
   base.days[0].afternoon_events = [
     { id: 'a_3_1', text: '14h00–17h00: Đại hội Chi đoàn Giáo viên năm học 2026-2027 tại phòng Hội đồng', highlight: 'red' }
   ];
-  base.days[0].duty_leader = 'Ông Sáng';
+  base.days[0].duty_leader = 'Thầy Phương';
 
   // Thứ 3
   base.days[1].morning_events = [
@@ -87,7 +87,7 @@ export function generateSampleWeek3Schedule(academicYear: string = '2026–2027'
   base.days[1].afternoon_events = [
     { id: 'a_3_2', text: '14h00: Bồi dưỡng học sinh giỏi các môn văn hóa khối 10, 11, 12 theo kế hoạch ôn thi tỉnh', highlight: 'normal' }
   ];
-  base.days[1].duty_leader = 'Ông Hòa';
+  base.days[1].duty_leader = 'Thầy Lương';
 
   // Thứ 4
   base.days[2].morning_events = [
@@ -96,7 +96,7 @@ export function generateSampleWeek3Schedule(academicYear: string = '2026–2027'
   base.days[2].afternoon_events = [
     { id: 'a_3_3', text: 'Sinh hoạt chuyên môn tổ KHTN và KHXH theo nghiên cứu bài học', highlight: 'normal' }
   ];
-  base.days[2].duty_leader = 'Ông Hòa';
+  base.days[2].duty_leader = 'Thầy Lương';
 
   // Thứ 5
   base.days[3].morning_events = [
@@ -105,7 +105,7 @@ export function generateSampleWeek3Schedule(academicYear: string = '2026–2027'
   base.days[3].afternoon_events = [
     { id: 'a_3_4', text: 'Kiểm tra cơ sở vật chất phòng máy vi tính, phòng thực hành Lý - Hóa - Sinh', highlight: 'normal' }
   ];
-  base.days[3].duty_leader = 'Ông Hùng';
+  base.days[3].duty_leader = 'Thầy Quỳnh';
 
   // Thứ 6
   base.days[4].morning_events = [
@@ -114,7 +114,7 @@ export function generateSampleWeek3Schedule(academicYear: string = '2026–2027'
   base.days[4].afternoon_events = [
     { id: 'a_3_5', text: '14h00: Họp Hội đồng sư phạm tháng 9 năm học 2026-2027', highlight: 'red' }
   ];
-  base.days[4].duty_leader = 'Ông Hùng';
+  base.days[4].duty_leader = 'Thầy Quỳnh';
 
   // Thứ 7
   base.days[5].morning_events = [
@@ -123,14 +123,14 @@ export function generateSampleWeek3Schedule(academicYear: string = '2026–2027'
   base.days[5].afternoon_events = [
     { id: 'a_3_6', text: 'Trực ban chuyên môn và rà soát tiến độ giảng dạy tuần 3', highlight: 'normal' }
   ];
-  base.days[5].duty_leader = 'Ông Sáng';
+  base.days[5].duty_leader = 'Thầy Phương';
 
   // Chủ nhật
   base.days[6].morning_events = [
     { id: 'm_3_8', text: 'Nghỉ. Trực cơ quan, an ninh trật tự và phòng chống cháy nổ', highlight: 'normal' }
   ];
   base.days[6].afternoon_events = [];
-  base.days[6].duty_leader = 'Ông Sáng';
+  base.days[6].duty_leader = 'Thầy Phương';
 
   return base;
 }
@@ -147,7 +147,7 @@ export function generateSampleWeek4Schedule(academicYear: string = '2026–2027'
   base.days[0].afternoon_events = [
     { id: 'a_4_1', text: '14h00: Họp Ban Giám hiệu rà soát kế hoạch công tác trọng tâm tháng 10', highlight: 'normal' }
   ];
-  base.days[0].duty_leader = 'Ông Sáng';
+  base.days[0].duty_leader = 'Thầy Phương';
 
   // Thứ 3
   base.days[1].morning_events = [
@@ -156,7 +156,7 @@ export function generateSampleWeek4Schedule(academicYear: string = '2026–2027'
   base.days[1].afternoon_events = [
     { id: 'a_4_2', text: '14h00: Tiếp tục bồi dưỡng đội tuyển HSG cấp tỉnh các bộ môn văn hóa', highlight: 'normal' }
   ];
-  base.days[1].duty_leader = 'Ông Hòa';
+  base.days[1].duty_leader = 'Thầy Lương';
 
   // Thứ 4
   base.days[2].morning_events = [
@@ -165,7 +165,7 @@ export function generateSampleWeek4Schedule(academicYear: string = '2026–2027'
   base.days[2].afternoon_events = [
     { id: 'a_4_3', text: 'Sinh hoạt chuyên môn các tổ Khoa học Tự nhiên và Khoa học Xã hội', highlight: 'normal' }
   ];
-  base.days[2].duty_leader = 'Ông Hòa';
+  base.days[2].duty_leader = 'Thầy Lương';
 
   // Thứ 5
   base.days[3].morning_events = [
@@ -174,7 +174,7 @@ export function generateSampleWeek4Schedule(academicYear: string = '2026–2027'
   base.days[3].afternoon_events = [
     { id: 'a_4_4', text: 'Kiểm tra nền nếp học sinh bán trú và an toàn trường học', highlight: 'normal' }
   ];
-  base.days[3].duty_leader = 'Ông Hùng';
+  base.days[3].duty_leader = 'Thầy Quỳnh';
 
   // Thứ 6
   base.days[4].morning_events = [
@@ -183,7 +183,7 @@ export function generateSampleWeek4Schedule(academicYear: string = '2026–2027'
   base.days[4].afternoon_events = [
     { id: 'a_4_5', text: '14h00: Sinh hoạt Chi bộ tháng 10 năm 2026', highlight: 'red' }
   ];
-  base.days[4].duty_leader = 'Ông Hùng';
+  base.days[4].duty_leader = 'Thầy Quỳnh';
 
   // Thứ 7
   base.days[5].morning_events = [
@@ -192,14 +192,14 @@ export function generateSampleWeek4Schedule(academicYear: string = '2026–2027'
   base.days[5].afternoon_events = [
     { id: 'a_4_6', text: 'Trực chuyên môn, tổng hợp báo cáo tiến độ tuần 4', highlight: 'normal' }
   ];
-  base.days[5].duty_leader = 'Ông Sáng';
+  base.days[5].duty_leader = 'Thầy Phương';
 
   // Chủ nhật
   base.days[6].morning_events = [
     { id: 'm_4_8', text: 'Nghỉ. Trực bảo vệ an ninh trật tự cơ quan', highlight: 'normal' }
   ];
   base.days[6].afternoon_events = [];
-  base.days[6].duty_leader = 'Ông Sáng';
+  base.days[6].duty_leader = 'Thầy Phương';
 
   return base;
 }
@@ -234,7 +234,7 @@ export function normalizeWeeklySchedule(item: any, defaultYear: string = '2026�
       date_str: existingDay?.date_str || dateStr,
       morning_events: Array.isArray(existingDay?.morning_events) ? existingDay.morning_events : [],
       afternoon_events: Array.isArray(existingDay?.afternoon_events) ? existingDay.afternoon_events : [],
-      duty_leader: existingDay?.duty_leader || (idx === 1 || idx === 2 ? 'Ông Hòa' : idx === 3 || idx === 4 ? 'Ông Hùng' : 'Ông Sáng'),
+      duty_leader: existingDay?.duty_leader || (idx === 1 || idx === 2 ? 'Thầy Lương' : idx === 3 || idx === 4 ? 'Thầy Quỳnh' : 'Thầy Phương'),
       duty_leader_confidence: existingDay?.duty_leader_confidence
     };
   });
@@ -252,12 +252,12 @@ export function normalizeWeeklySchedule(item: any, defaultYear: string = '2026�
     duty_week: item.duty_week || `Lớp ${weekNum === 3 ? '12C' : weekNum === 4 ? '12B' : '12A'}`,
     school_year: year,
     title: item.title || `LỊCH CÔNG TÁC TUẦN ${weekNum}`,
-    header_text: item.header_text || 'SỞ GD&ĐT PHÚ THỌ - TRƯỜNG THPT SƠN LƯƠNG',
+    header_text: item.header_text || 'SỞ GD&ĐT PHÚ THỌ - TRƯỜNG THPT MINH HÒA',
     days,
     footer: item.footer || {
       working_time: 'Thời gian làm việc: Sáng từ 7h00 - 11h30; Chiều từ 13h30 - 17h00',
       recipients: '- BGH;\n- Niêm yết bảng tin;\n- Lưu VT.',
-      principal_name: 'Nguyễn Quang Sáng'
+      principal_name: 'Trịnh Việt Phương'
     },
     original_images: item.original_images,
     created_at: item.created_at || new Date().toISOString(),
