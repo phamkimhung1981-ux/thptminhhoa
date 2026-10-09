@@ -214,7 +214,7 @@ export const subscribeStaffForms = (callback: (forms: KpiStaffForm[]) => void) =
     return onSnapshot(colRef, (snapshot) => {
       const formsList: KpiStaffForm[] = [];
       snapshot.forEach(docSnap => {
-        formsList.push(docSnap.data() as KpiStaffForm);
+        formsList.push({ id: docSnap.id, ...docSnap.data() } as KpiStaffForm);
       });
       saveStaffFormsToCache(formsList);
       callback(formsList);
@@ -240,9 +240,14 @@ export const saveStaffFormToFirestore = async (form: KpiStaffForm) => {
 
 export const deleteStaffFormFromFirestore = async (formId: string) => {
   try {
-    await deleteDoc(doc(db, STAFF_COLLECTIONS.FORMS, formId));
+    const docRef = doc(db, STAFF_COLLECTIONS.FORMS, formId);
+    await deleteDoc(docRef);
   } catch (err) {
     console.error('Error deleting staff form from Firestore:', err);
+  } finally {
+    // Always update local cache and ensure removal
+    const cached = loadStaffFormsFromCache().filter(f => f.id !== formId);
+    saveStaffFormsToCache(cached);
   }
 };
 
@@ -262,15 +267,16 @@ export const deleteAllStaffFormsFromFirestore = async (periodId?: string): Promi
     });
 
     await Promise.all(deletePromises);
-
-    // Update localStorage cache
-    const currentForms = loadStaffFormsFromCache();
-    const remainingForms = currentForms.filter(f => periodId && periodId !== 'all' ? f.periodId !== periodId : false);
-    saveStaffFormsToCache(remainingForms);
-
     return deletedCount;
   } catch (err) {
     console.error('Error deleting all staff forms from Firestore:', err);
     return 0;
+  } finally {
+    const currentForms = loadStaffFormsFromCache();
+    const remainingForms = currentForms.filter(f => {
+      if (!periodId || periodId === 'all') return false;
+      return f.periodId !== periodId;
+    });
+    saveStaffFormsToCache(remainingForms);
   }
 };

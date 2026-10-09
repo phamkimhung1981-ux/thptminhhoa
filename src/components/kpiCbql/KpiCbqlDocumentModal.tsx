@@ -695,8 +695,8 @@ export default function KpiCbqlDocumentModal({
                         onChange={(e) => setSelectedTeacherId(e.target.value)}
                         className="w-full px-3 py-2 text-xs sm:text-sm font-semibold bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
                       >
-                        <optgroup label="⭐ Danh sách Cán bộ Quản lý (BGH / Tổ trưởng / CBQL)">
-                          {cbqlTeachers.map(t => {
+                        {cbqlTeachers.length > 0 ? (
+                          cbqlTeachers.map(t => {
                             const pos = resolveCbqlTeacherPosition(t, departments);
                             const deptName = resolveCbqlTeacherDepartmentName(t, departments);
                             return (
@@ -704,19 +704,9 @@ export default function KpiCbqlDocumentModal({
                                 [{pos}] {t.name} — {deptName} ({t.code || t.username})
                               </option>
                             );
-                          })}
-                        </optgroup>
-                        {allSelectableTeachers.filter(t => !isTeacherCbql(t, departments)).length > 0 && (
-                          <optgroup label="📋 Danh sách Cán bộ, Giáo viên & Nhân viên khác">
-                            {allSelectableTeachers.filter(t => !isTeacherCbql(t, departments)).map(t => {
-                              const deptName = resolveCbqlTeacherDepartmentName(t, departments);
-                              return (
-                                <option key={t.id} value={t.id}>
-                                  [Giáo viên] {t.name} — {deptName} ({t.code || t.username})
-                                </option>
-                              );
-                            })}
-                          </optgroup>
+                          })
+                        ) : (
+                          <option value="" disabled>Chưa có cán bộ quản lý (CBQL/BGH/TTCM)</option>
                         )}
                       </select>
                       <p className="text-[10.5px] text-slate-500 italic">

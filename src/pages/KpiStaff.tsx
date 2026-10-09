@@ -18,16 +18,17 @@ import KpiStaffPeriodManagerModal from '../components/kpiStaff/KpiStaffPeriodMan
 import KpiStaffDocumentModal from '../components/kpiStaff/KpiStaffDocumentModal';
 import KpiStaffFormModal from '../components/kpiStaff/KpiStaffFormModal';
 import KpiStaffPrintModal from '../components/kpiStaff/KpiStaffPrintModal';
+import KpiStaffCriteriaManagerModal from '../components/kpiStaff/KpiStaffCriteriaManagerModal';
 
 import { 
   UserCheck, Calendar, FileSpreadsheet, Plus, Search, 
   Award, Edit3, Printer, Trash2, 
-  TrendingUp, Users, FileText, Lock
+  TrendingUp, Users, FileText, Lock, Sliders
 } from 'lucide-react';
 
 export default function KpiStaff() {
   const { user } = useAuth();
-  const { teachers, kpiStaffForms, setKpiStaffForms, kpiStaffPeriods, setKpiStaffPeriods } = useAppContext();
+  const { teachers, kpiStaffForms, setKpiStaffForms, kpiStaffPeriods, setKpiStaffPeriods, kpiStaffCriteria } = useAppContext();
 
   // Active period state
   const periods: KpiStaffPeriod[] = kpiStaffPeriods && kpiStaffPeriods.length > 0 ? kpiStaffPeriods : DEFAULT_STAFF_PERIODS;
@@ -40,6 +41,7 @@ export default function KpiStaff() {
   // Modals state
   const [isPeriodModalOpen, setIsPeriodModalOpen] = useState<boolean>(false);
   const [isDocumentModalOpen, setIsDocumentModalOpen] = useState<boolean>(false);
+  const [isCriteriaManagerOpen, setIsCriteriaManagerOpen] = useState<boolean>(false);
   const [selectedFormForEdit, setSelectedFormForEdit] = useState<KpiStaffForm | null>(null);
   const [selectedFormForPrint, setSelectedFormForPrint] = useState<KpiStaffForm | null>(null);
 
@@ -143,11 +145,16 @@ export default function KpiStaff() {
     }
   };
 
-  const handleDeleteForm = (formId: string) => {
+  const handleDeleteForm = async (formId: string) => {
     if (confirm('Bạn có chắc chắn muốn xóa phiếu đánh giá KPI này?')) {
-      deleteStaffFormFromFirestore(formId);
-      const updated = (kpiStaffForms || []).filter(f => f.id !== formId);
-      setKpiStaffForms(updated);
+      try {
+        await deleteStaffFormFromFirestore(formId);
+        const updated = (kpiStaffForms || []).filter(f => f.id !== formId);
+        setKpiStaffForms(updated);
+      } catch (err) {
+        console.error('Lỗi khi xóa phiếu:', err);
+        alert('Không thể xóa phiếu đánh giá KPI.');
+      }
     }
   };
 
@@ -207,6 +214,13 @@ export default function KpiStaff() {
               className="px-3.5 py-2.5 bg-emerald-700/60 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl border border-emerald-500/40 transition-all flex items-center gap-2"
             >
               <Calendar size={15} /> Kỳ đánh giá
+            </button>
+
+            <button
+              onClick={() => setIsCriteriaManagerOpen(true)}
+              className="px-3.5 py-2.5 bg-emerald-700/60 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl border border-emerald-500/40 transition-all flex items-center gap-2"
+            >
+              <Sliders size={15} /> Quản lý tiêu chí
             </button>
 
             <button
@@ -386,8 +400,9 @@ export default function KpiStaff() {
                 <th className="p-4 w-12 text-center">STT</th>
                 <th className="p-4">Nhân viên</th>
                 <th className="p-4">Vị trí việc làm & Bộ KPI</th>
-                <th className="p-4 text-center">KPI Chung (30đ)</th>
-                <th className="p-4 text-center">KPI Vị trí (70đ)</th>
+                <th className="p-4 text-center bg-blue-50/70 text-blue-950">Cá nhân tự chấm (100đ)</th>
+                <th className="p-4 text-center bg-purple-50/70 text-purple-950">Tổ trưởng chấm (100đ)</th>
+                <th className="p-4 text-center bg-emerald-50/70 text-emerald-950">BGH chấm (100đ)</th>
                 <th className="p-4 text-center">Tổng điểm (100đ)</th>
                 <th className="p-4">Xếp loại</th>
                 <th className="p-4 text-center">Trạng thái</th>
@@ -397,7 +412,7 @@ export default function KpiStaff() {
             <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
               {filteredForms.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="p-8 text-center text-slate-500">
+                  <td colSpan={10} className="p-8 text-center text-slate-500">
                     <div className="max-w-xs mx-auto space-y-2">
                       <UserCheck size={36} className="mx-auto text-slate-300" />
                       <p className="font-bold text-slate-700">Chưa có phiếu đánh giá KPI Nhân viên nào</p>
@@ -408,8 +423,22 @@ export default function KpiStaff() {
               ) : (
                 filteredForms.map((f, idx) => {
                   const posConfig = POSITION_CONFIGS[f.positionKey] || POSITION_CONFIGS.KE_TOAN;
-                  const finalScore = f.managerTotalScore ?? f.totalScore;
-                  const finalClassification = f.leaderClassification || f.selfClassification;
+                  const finalScore = f.managerTotalScore ?? f.ttcmTotalScore ?? f.totalScore;
+                  const finalClassification = f.leaderClassification || f.bghClassification || f.ttcmClassification || f.selfClassification;
+
+                  // Determine status label & badge style
+                  let statusLabel = 'Chưa tự chấm';
+                  let statusBadge = 'bg-slate-100 text-slate-700 border-slate-300';
+                  if (f.status === 'completed' || f.status === 'locked' || (f.managerTotalScore !== null && f.managerTotalScore !== undefined)) {
+                    statusLabel = 'Đã hoàn thành';
+                    statusBadge = 'bg-emerald-50 text-emerald-800 border-emerald-200';
+                  } else if (f.ttcmTotalScore !== null && f.ttcmTotalScore !== undefined) {
+                    statusLabel = 'Chờ BGH đánh giá';
+                    statusBadge = 'bg-amber-50 text-amber-800 border-amber-200';
+                  } else if (f.totalScore > 0 || f.status === 'self_evaluated' || f.status === 'submitted') {
+                    statusLabel = 'Chờ Tổ trưởng đánh giá';
+                    statusBadge = 'bg-purple-50 text-purple-800 border-purple-200';
+                  }
 
                   return (
                     <tr key={f.id} className="hover:bg-slate-50/80 transition-colors">
@@ -432,25 +461,28 @@ export default function KpiStaff() {
                         <p className="text-[11px] text-slate-500 font-semibold">{posConfig.title.replace('B. KPI VỊ TRÍ VIỆC LÀM: ', '')}</p>
                       </td>
 
-                      <td className="p-4 text-center">
-                        <span className="font-bold text-emerald-800">{f.generalTotalSelf} / 30đ</span>
+                      {/* Cá nhân tự chấm (100đ) */}
+                      <td className="p-4 text-center bg-blue-50/15">
+                        <span className="font-bold text-blue-900">{f.totalScore} / 100 điểm</span>
                       </td>
 
-                      <td className="p-4 text-center">
-                        <span className="font-bold text-teal-800">{f.positionTotalSelf} / 70đ</span>
+                      {/* Tổ trưởng chấm (100đ) */}
+                      <td className="p-4 text-center bg-purple-50/15">
+                        <span className="font-bold text-purple-900">
+                          {f.ttcmTotalScore !== null && f.ttcmTotalScore !== undefined ? `${f.ttcmTotalScore} / 100 điểm` : '---'}
+                        </span>
                       </td>
 
+                      {/* BGH chấm (100đ) */}
+                      <td className="p-4 text-center bg-emerald-50/15">
+                        <span className="font-bold text-emerald-900">
+                          {f.managerTotalScore !== null && f.managerTotalScore !== undefined ? `${f.managerTotalScore} / 100 điểm` : '---'}
+                        </span>
+                      </td>
+
+                      {/* Tổng điểm (100đ) */}
                       <td className="p-4 text-center">
-                        <span className="font-black text-slate-900 text-sm">{finalScore} / 100đ</span>
-                        <div className="flex flex-col items-center gap-0.5 text-[10px] mt-1 font-semibold">
-                          <span className="text-blue-700">Tự: {f.totalScore}đ</span>
-                          <span className="text-purple-800 font-bold bg-purple-50 px-1.5 py-0.2 rounded border border-purple-200">
-                            Tổ trưởng: {f.ttcmTotalScore !== null && f.ttcmTotalScore !== undefined ? `${f.ttcmTotalScore}đ` : '---'}
-                          </span>
-                          <span className="text-amber-800">
-                            BGH: {f.managerTotalScore !== null && f.managerTotalScore !== undefined ? `${f.managerTotalScore}đ` : '---'}
-                          </span>
-                        </div>
+                        <span className="font-black text-slate-900 text-sm">{finalScore} / 100 điểm</span>
                       </td>
 
                       <td className="p-4">
@@ -468,12 +500,8 @@ export default function KpiStaff() {
                       </td>
 
                       <td className="p-4 text-center">
-                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border inline-block ${
-                          f.status === 'completed' || f.status === 'locked'
-                            ? 'bg-slate-100 text-slate-700 border-slate-300'
-                            : 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                        }`}>
-                          {f.status === 'completed' || f.status === 'locked' ? 'Nghiệm thu' : 'Bản nháp'}
+                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border inline-block ${statusBadge}`}>
+                          {statusLabel}
                         </span>
                       </td>
 
@@ -550,6 +578,7 @@ export default function KpiStaff() {
         form={selectedFormForEdit}
         onSaveForm={handleSaveForm}
         onPrintForm={f => setSelectedFormForPrint(f)}
+        onDeleteForm={handleDeleteForm}
       />
 
       <KpiStaffPrintModal
@@ -639,6 +668,12 @@ export default function KpiStaff() {
           </div>
         </div>
       )}
+
+      <KpiStaffCriteriaManagerModal
+        isOpen={isCriteriaManagerOpen}
+        onClose={() => setIsCriteriaManagerOpen(false)}
+        criteria={kpiStaffCriteria || []}
+      />
 
     </div>
   );

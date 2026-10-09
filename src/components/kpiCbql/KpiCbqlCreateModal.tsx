@@ -298,32 +298,9 @@ export default function KpiCbqlCreateModal({
                 <User size={15} className="text-blue-600" />
                 Cán bộ quản lý được đánh giá: <span className="text-rose-500">*</span>
               </label>
-
-              {/* Filter mode toggles */}
-              <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg text-[11px] font-semibold">
-                <button
-                  type="button"
-                  onClick={() => setFilterMode('cbql_only')}
-                  className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                    filterMode === 'cbql_only'
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  Chỉ CBQL ({cbqlList.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterMode('all')}
-                  className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                    filterMode === 'all'
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  Tất cả ({teachers.length})
-                </button>
-              </div>
+              <span className="text-[11px] font-semibold text-slate-500">
+                Danh sách CBQL ({cbqlList.length})
+              </span>
             </div>
 
             <select
@@ -333,46 +310,18 @@ export default function KpiCbqlCreateModal({
               required
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
             >
-              {filterMode === 'cbql_only' ? (
-                cbqlList.length > 0 ? (
-                  cbqlList.map(t => {
-                    const pos = resolveCbqlTeacherPosition(t, departments);
-                    const dept = resolveCbqlTeacherDepartmentName(t, departments);
-                    return (
-                      <option key={t.id} value={t.id}>
-                        [{pos}] {t.name} — {dept} ({t.code || t.username})
-                      </option>
-                    );
-                  })
-                ) : (
-                  <option value="" disabled>Chưa có cán bộ được phân vai trò CBQL/BGH/TTCM</option>
-                )
+              {cbqlList.length > 0 ? (
+                cbqlList.map(t => {
+                  const pos = resolveCbqlTeacherPosition(t, departments);
+                  const dept = resolveCbqlTeacherDepartmentName(t, departments);
+                  return (
+                    <option key={t.id} value={t.id}>
+                      [{pos}] {t.name} — {dept} ({t.code || t.username})
+                    </option>
+                  );
+                })
               ) : (
-                <>
-                  <optgroup label="⭐ Cán bộ Lãnh đạo & Quản lý (BGH, Tổ trưởng)">
-                    {cbqlList.map(t => {
-                      const pos = resolveCbqlTeacherPosition(t, departments);
-                      const dept = resolveCbqlTeacherDepartmentName(t, departments);
-                      return (
-                        <option key={t.id} value={t.id}>
-                          [{pos}] {t.name} — {dept} ({t.code || t.username})
-                        </option>
-                      );
-                    })}
-                  </optgroup>
-                  {nonCbqlList.length > 0 && (
-                    <optgroup label="📋 Giáo viên & Nhân viên khác">
-                      {nonCbqlList.map(t => {
-                        const dept = resolveCbqlTeacherDepartmentName(t, departments);
-                        return (
-                          <option key={t.id} value={t.id}>
-                            [Giáo viên] {t.name} — {dept} ({t.code || t.username})
-                          </option>
-                        );
-                      })}
-                    </optgroup>
-                  )}
-                </>
+                <option value="" disabled>Chưa có cán bộ quản lý (CBQL/BGH/TTCM)</option>
               )}
             </select>
 

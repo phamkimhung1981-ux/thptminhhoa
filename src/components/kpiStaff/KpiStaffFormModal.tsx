@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { KpiStaffForm, KpiStaffScoreItem, StaffPositionKey } from '../../types/kpiStaff';
 import { POSITION_CONFIGS, getClassificationByScore } from '../../lib/kpiStaffData';
 import { 
-  FileCheck, Award, Save, Send, Lock, Printer, X, MessageSquare, AlertCircle, Sparkles 
+  FileCheck, Award, Save, Send, Lock, Printer, X, MessageSquare, AlertCircle, Sparkles, Trash2 
 } from 'lucide-react';
 
 interface Props {
@@ -11,6 +11,7 @@ interface Props {
   form: KpiStaffForm | null;
   onSaveForm: (updatedForm: KpiStaffForm) => void;
   onPrintForm?: (form: KpiStaffForm) => void;
+  onDeleteForm?: (formId: string) => void;
 }
 
 export default function KpiStaffFormModal({
@@ -18,7 +19,8 @@ export default function KpiStaffFormModal({
   onClose,
   form,
   onSaveForm,
-  onPrintForm
+  onPrintForm,
+  onDeleteForm
 }: Props) {
   const [formData, setFormData] = useState<KpiStaffForm | null>(null);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string>('');
@@ -516,6 +518,19 @@ export default function KpiStaffFormModal({
           </div>
 
           <div className="flex items-center gap-2">
+            {onDeleteForm && (
+              <button
+                onClick={() => {
+                  onDeleteForm(formData.id);
+                  onClose();
+                }}
+                className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 transition-colors flex items-center gap-1.5 mr-auto"
+                title="Xóa phiếu"
+              >
+                <Trash2 size={15} /> Xóa phiếu
+              </button>
+            )}
+
             <button
               onClick={onClose}
               className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-xs rounded-xl transition-colors"

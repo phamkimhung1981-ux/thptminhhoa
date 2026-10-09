@@ -254,28 +254,35 @@ export const exportStaffFormToWord = async (form: KpiStaffForm): Promise<void> =
               }),
               new TableRow({
                 children: [
-                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'KPI chung', size: 20, font: 'Times New Roman' })] })] }),
-                  new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: '30', size: 20, font: 'Times New Roman' })] })] }),
-                  new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: `${form.generalTotalSelf}`, bold: true, size: 20, font: 'Times New Roman' })] })] })
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '1. Cá nhân tự chấm', size: 20, font: 'Times New Roman' })] })] }),
+                  new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: '100', size: 20, font: 'Times New Roman' })] })] }),
+                  new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: `${form.totalScore} điểm`, bold: true, size: 20, font: 'Times New Roman', color: '1E3A8A' })] })] })
                 ]
               }),
               new TableRow({
                 children: [
-                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'KPI vị trí việc làm', size: 20, font: 'Times New Roman' })] })] }),
-                  new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: '70', size: 20, font: 'Times New Roman' })] })] }),
-                  new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: `${form.positionTotalSelf}`, bold: true, size: 20, font: 'Times New Roman' })] })] })
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '2. Tổ trưởng đánh giá', size: 20, font: 'Times New Roman' })] })] }),
+                  new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: '100', size: 20, font: 'Times New Roman' })] })] }),
+                  new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: form.ttcmTotalScore !== null && form.ttcmTotalScore !== undefined ? `${form.ttcmTotalScore} điểm` : '---', bold: true, size: 20, font: 'Times New Roman', color: '581C87' })] })] })
                 ]
               }),
               new TableRow({
                 children: [
-                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Tổng điểm KPI', bold: true, size: 20, font: 'Times New Roman' })] })] }),
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '3. BGH đánh giá', size: 20, font: 'Times New Roman' })] })] }),
+                  new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: '100', size: 20, font: 'Times New Roman' })] })] }),
+                  new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: form.managerTotalScore !== null && form.managerTotalScore !== undefined ? `${form.managerTotalScore} điểm` : '---', bold: true, size: 20, font: 'Times New Roman', color: '065F46' })] })] })
+                ]
+              }),
+              new TableRow({
+                children: [
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Tổng điểm chính thức', bold: true, size: 20, font: 'Times New Roman' })] })] }),
                   new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: '100', bold: true, size: 20, font: 'Times New Roman' })] })] }),
-                  new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: `${finalScore}`, bold: true, size: 20, font: 'Times New Roman', color: '166534' })] })] })
+                  new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: `${finalScore} / 100 điểm`, bold: true, size: 20, font: 'Times New Roman', color: '166534' })] })] })
                 ]
               }),
               new TableRow({
                 children: [
-                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Tự xếp loại', bold: true, size: 20, font: 'Times New Roman' })] })] }),
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Xếp loại chính thức', bold: true, size: 20, font: 'Times New Roman' })] })] }),
                   new TableCell({ columnSpan: 2, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: finalClassification, bold: true, size: 20, font: 'Times New Roman', color: '1E3A8A' })] })] })
                 ]
               })

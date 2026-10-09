@@ -1,4 +1,5 @@
 import { Teacher, Department, KpiItem, KpiTargetCode, KpiEvaluationItem } from '../types';
+import { OFFICIAL_5_DEPARTMENTS } from '../constants/departmentConfig';
 
 export type KpiTargetGroup = 'CBQL' | 'TTCM_TPCM' | 'GV' | 'NV';
 export type LegacyKpiTargetGroup = 'CNQL' | 'TTCM_TPCM_TTVP' | 'GIAO_VIEN' | 'NHAN_VIEN';
@@ -1898,12 +1899,10 @@ export function isTeacherTtcm(teacher?: Partial<Teacher> | null, departments: De
     normRole === 'tt' ||
     isDeptHead ||
     normPos.includes('to truong') ||
+    normPos.includes('to pho') ||
     normPos.includes('ttcm') ||
     normPos.includes('truong bo mon') ||
     normPos.includes('truong to') ||
-    normPos.includes('to pho') ||
-    normPos.includes('truong') ||
-    normPos.includes('to') ||
     normTitle.includes('to truong') ||
     normTitle.includes('ttcm') ||
     Boolean((teacher as any).isTtcm) ||
@@ -1957,6 +1956,7 @@ function normalizeDeptKeyword(str: string): string {
  * Tuyệt đối không lấy giáo viên bình thường
  */
 export function getTtcmEvaluatorList(teachers: Teacher[], departments: Department[] = []): TtcmEvaluatorOption[] {
+  const activeDepartments = departments.length > 0 ? departments : OFFICIAL_5_DEPARTMENTS;
   const activeTeachers = teachers.filter(t => {
     const rawStatus = (t.status as string) || '';
     const isInactive = rawStatus === 'Đã nghỉ việc' || rawStatus === 'inactive' || rawStatus === 'Nghỉ việc';
@@ -1968,11 +1968,11 @@ export function getTtcmEvaluatorList(teachers: Teacher[], departments: Departmen
   const addTtcmOption = (t: Teacher) => {
     let deptName = t.departmentName || '';
     if (!deptName && t.departmentId) {
-      const foundDept = departments.find(d => d.id === t.departmentId);
+      const foundDept = activeDepartments.find(d => d.id === t.departmentId);
       if (foundDept) deptName = foundDept.name;
     }
     if (!deptName) {
-      const headDept = departments.find(d => d.headId === t.id);
+      const headDept = activeDepartments.find(d => d.headId === t.id);
       if (headDept) deptName = headDept.name;
     }
     if (!deptName && (t as any).department) {
@@ -1988,7 +1988,8 @@ export function getTtcmEvaluatorList(teachers: Teacher[], departments: Departmen
     if (!deptName) deptName = 'Tổ chuyên môn';
 
     const cleanDeptName = deptName.startsWith('Tổ ') ? deptName : `Tổ ${deptName}`;
-    const displayLabel = `${t.name} — Tổ trưởng ${cleanDeptName}`;
+    const positionTitle = t.position || 'Tổ trưởng chuyên môn';
+    const displayLabel = `${t.name} — ${positionTitle} — ${cleanDeptName}`;
 
     if (!ttcmList.some(item => item.id === t.id)) {
       ttcmList.push({
@@ -1997,7 +1998,7 @@ export function getTtcmEvaluatorList(teachers: Teacher[], departments: Departmen
         code: t.code,
         departmentId: t.departmentId,
         departmentName: deptName,
-        position: t.position || `Tổ trưởng ${cleanDeptName}`,
+        position: positionTitle,
         displayLabel,
         teacher: t
       });
@@ -2005,13 +2006,13 @@ export function getTtcmEvaluatorList(teachers: Teacher[], departments: Departmen
   };
 
   activeTeachers.forEach(t => {
-    if (isTeacherTtcm(t, departments)) {
+    if (isTeacherTtcm(t, activeDepartments)) {
       addTtcmOption(t);
     }
   });
 
-  // Đảm bảo mỗi tổ/phòng ban (bao gồm Tổ Hóa - Sinh và các tổ khác) đều có ít nhất 1 đại diện TTCM/Tổ trưởng
-  departments.forEach(dept => {
+  // Đảm bảo mỗi tổ/phòng ban đều có ít nhất 1 đại diện TTCM/Tổ trưởng
+  activeDepartments.forEach(dept => {
     const hasDeptRep = ttcmList.some(item => 
       item.departmentId === dept.id || 
       item.departmentName.toLowerCase().includes(dept.name.toLowerCase()) || 
@@ -2037,7 +2038,6 @@ export function getTtcmEvaluatorList(teachers: Teacher[], departments: Departmen
                  (normDept.includes('văn') && (sub.includes('văn') || sub.includes('sử') || sub.includes('địa')));
         });
       }
-      // Nếu vẫn không tìm thấy, lấy giáo viên đầu tiên thuộc tổ hoặc bất kỳ giáo viên nào chưa được phân công
       if (!repTeacher && activeTeachers.length > 0) {
         repTeacher = activeTeachers.find(t => !isTeacherBgh(t) && !ttcmList.some(item => item.id === t.id));
       }

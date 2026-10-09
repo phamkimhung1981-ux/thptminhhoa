@@ -915,7 +915,17 @@ export function getCbqlTeachers(teachers: Teacher[], departments?: Department[],
   }
 
   const cbqlOnly = allList.filter(t => isTeacherCbql(t, departments));
-  return cbqlOnly.length > 0 ? cbqlOnly : allList;
+  if (cbqlOnly.length > 0) return cbqlOnly;
+  
+  // Fallback to strict BGH / managerial roles if cbqlOnly is empty, never return regular teachers
+  return allList.filter(t => (
+    t.role === 'BGH' || 
+    t.role === 'TTCM' || 
+    (t.role as string) === 'CBQL' || 
+    (t.position || '').toLowerCase().includes('hiệu trưởng') || 
+    (t.position || '').toLowerCase().includes('tổ trưởng') ||
+    (t.position || '').toLowerCase().includes('quản lý')
+  ));
 }
 
 /**
