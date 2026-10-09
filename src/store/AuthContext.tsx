@@ -20,33 +20,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Restore user from localStorage if exists, or set default admin
+  // Restore user from localStorage if exists
   useEffect(() => {
     try {
       const stored = localStorage.getItem('authUser');
       if (stored) {
         setUser(JSON.parse(stored));
       } else {
-        // Default to admin user for direct instant access
-        const defaultAdmin: User = {
-          id: 'admin',
-          name: 'Quản trị viên Hệ thống',
-          role: 'admin',
-          username: 'admin',
-          position: 'Quản trị viên'
-        };
-        setUser(defaultAdmin);
-        localStorage.setItem('authUser', JSON.stringify(defaultAdmin));
+        setUser(null);
       }
     } catch (e) {
       console.error(e);
+      setUser(null);
     }
   }, []);
 
-  const login = async (username: string) => {
+  const login = async (username: string, password?: string) => {
     setError(null);
+    if (!username.trim()) {
+      setError('Vui lòng nhập tên đăng nhập.');
+      return;
+    }
     try {
-      const q = query(collection(db, 'teachers'), where('username', '==', username));
+      const q = query(collection(db, 'teachers'), where('username', '==', username.trim()));
       const querySnapshot = await getDocs(q);
       
       if (!querySnapshot.empty) {
@@ -55,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('authUser', JSON.stringify(foundUser));
       } else {
         // Handle admin username
-        if (username.toLowerCase() === 'admin') {
+        if (username.trim().toLowerCase() === 'admin') {
           let adminAvatar = '';
           let adminName = 'Quản trị viên Hệ thống';
           try {
@@ -79,12 +75,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(adminUser);
           localStorage.setItem('authUser', JSON.stringify(adminUser));
         } else {
-          setError('Tài khoản không tồn tại. Vui lòng kiểm tra lại. (Mẹo: Dùng "admin" để đăng nhập với quyền Quản trị viên)');
+          setError('Tên đăng nhập hoặc mật khẩu không chính xác, hoặc tài khoản chưa được kích hoạt.');
         }
       }
     } catch (e) {
       console.error(e);
-      setError('Không thể kết nối cơ sở dữ liệu.');
+      setError('Không thể kết nối cơ sở dữ liệu xác thực.');
     }
   };
 
