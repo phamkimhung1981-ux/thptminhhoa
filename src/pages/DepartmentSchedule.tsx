@@ -24,7 +24,10 @@ import {
   Building2,
   Share2,
   Send,
-  History
+  History,
+  Edit2,
+  Sun,
+  Moon
 } from 'lucide-react';
 import BackButton from '../components/ui/BackButton';
 import { Card } from '../components/ui/Card';
@@ -118,6 +121,59 @@ export default function DepartmentSchedule() {
   const [isDeleteWeekModalOpen, setIsDeleteWeekModalOpen] = useState(false);
   const [isAuditLogModalOpen, setIsAuditLogModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Trạng thái modal chỉnh sửa chi tiết lịch ngày
+  const [editingDayModal, setEditingDayModal] = useState<{
+    dateIso: string;
+    dayOfWeek: string;
+    dateDisplay: string;
+    morningTasks: string;
+    afternoonTasks: string;
+    dutyLeaderOrEvaluation: string;
+    notes: string;
+  } | null>(null);
+
+  const handleSaveEditingDayModal = () => {
+    if (!editingDayModal || !schedule) return;
+    const { dateIso, morningTasks, afternoonTasks, dutyLeaderOrEvaluation, notes } = editingDayModal;
+    
+    const newDays = [...schedule.days];
+    let dayIndex = newDays.findIndex(d => d.date === dateIso);
+
+    if (dayIndex >= 0) {
+      newDays[dayIndex] = {
+        ...newDays[dayIndex],
+        morningTasks,
+        afternoonTasks,
+        dutyLeaderOrEvaluation,
+        notes
+      };
+    } else {
+      newDays.push({
+        id: `day_${Date.now()}`,
+        dayOfWeek: editingDayModal.dayOfWeek,
+        date: dateIso,
+        dateDisplay: editingDayModal.dateDisplay,
+        morningTasks,
+        afternoonTasks,
+        dutyLeaderOrEvaluation,
+        notes,
+        assignedTeachers: [],
+        status: 'pending'
+      });
+    }
+
+    const updatedSchedule: DepartmentWeeklySchedule = {
+      ...schedule,
+      days: newDays,
+      updatedAt: new Date().toISOString()
+    };
+
+    setSchedule(updatedSchedule);
+    departmentScheduleService.saveSchedule(updatedSchedule).catch(console.error);
+    setEditingDayModal(null);
+    showToast(`Đã cập nhật lịch ${editingDayModal.dayOfWeek} (${editingDayModal.dateDisplay}) thành công!`);
+  };
 
   // Phân quyền xóa lịch công tác của tổ
   const canDeleteInView = useMemo(() => {
@@ -798,6 +854,22 @@ export default function DepartmentSchedule() {
                         <div className="text-[10px] text-slate-500 font-medium">
                           {wDay.dateDisplayFull}
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => setEditingDayModal({
+                            dateIso: wDay.dateIso,
+                            dayOfWeek: wDay.dayOfWeek,
+                            dateDisplay: wDay.dateDisplayShort,
+                            morningTasks: day.morningTasks || '',
+                            afternoonTasks: day.afternoonTasks || '',
+                            dutyLeaderOrEvaluation: day.dutyLeaderOrEvaluation || '',
+                            notes: day.notes || ''
+                          })}
+                          className="mt-2 inline-flex items-center justify-center gap-1 w-full px-2 py-1 text-[11px] font-bold text-blue-700 bg-white hover:bg-blue-600 hover:text-white border border-blue-300 rounded-lg transition-all shadow-2xs cursor-pointer"
+                          title="Mở bảng chỉnh sửa lịch ngày"
+                        >
+                          <Edit2 size={11} /> Sửa ngày
+                        </button>
                       </td>
 
                       {/* Col 2: Sáng - Nội dung công việc */}
@@ -1102,6 +1174,115 @@ export default function DepartmentSchedule() {
         isOpen={isAuditLogModalOpen}
         onClose={() => setIsAuditLogModalOpen(false)}
       />
+
+      {/* Modal chỉnh sửa chi tiết lịch ngày (Sáng, Chiều, Lãnh đạo, Ghi chú) */}
+      {editingDayModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-[24px] shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 my-6">
+            <div className="p-5 border-b border-slate-100 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                  <Edit2 size={20} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base sm:text-lg">
+                    ✏️ Chỉnh sửa lịch công tác {editingDayModal.dayOfWeek} ({editingDayModal.dateDisplay})
+                  </h3>
+                  <p className="text-xs text-blue-100 mt-0.5">
+                    Cập nhật chi tiết công việc buổi sáng, buổi chiều, lãnh đạo trực và ghi chú
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingDayModal(null)}
+                className="p-1.5 rounded-full text-white/80 hover:text-white hover:bg-white/20 transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-5 sm:p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              {/* Buổi Sáng */}
+              <div>
+                <label className="block text-xs font-bold text-blue-900 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                  <Sun size={15} className="text-amber-500" />
+                  <span>Nội dung công việc Buổi Sáng</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={editingDayModal.morningTasks}
+                  onChange={e => setEditingDayModal(prev => prev ? { ...prev, morningTasks: e.target.value } : null)}
+                  placeholder="Nhập nội dung công việc buổi sáng..."
+                  className="w-full p-3 text-xs sm:text-sm text-slate-900 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none leading-relaxed"
+                />
+              </div>
+
+              {/* Buổi Chiều */}
+              <div>
+                <label className="block text-xs font-bold text-blue-900 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                  <Moon size={15} className="text-indigo-600" />
+                  <span>Nội dung công việc Buổi Chiều</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={editingDayModal.afternoonTasks}
+                  onChange={e => setEditingDayModal(prev => prev ? { ...prev, afternoonTasks: e.target.value } : null)}
+                  placeholder="Nhập nội dung công việc buổi chiều..."
+                  className="w-full p-3 text-xs sm:text-sm text-slate-900 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none leading-relaxed"
+                />
+              </div>
+
+              {/* Lãnh đạo trực / đánh giá */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  👑 Lãnh đạo trực / Đánh giá
+                </label>
+                <input
+                  type="text"
+                  value={editingDayModal.dutyLeaderOrEvaluation}
+                  onChange={e => setEditingDayModal(prev => prev ? { ...prev, dutyLeaderOrEvaluation: e.target.value } : null)}
+                  placeholder="VD: Hiệu trưởng / Phó Hiệu trưởng trực..."
+                  className="w-full p-2.5 text-xs sm:text-sm text-slate-900 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none"
+                />
+              </div>
+
+              {/* Ghi chú */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  📝 Ghi chú
+                </label>
+                <input
+                  type="text"
+                  value={editingDayModal.notes}
+                  onChange={e => setEditingDayModal(prev => prev ? { ...prev, notes: e.target.value } : null)}
+                  placeholder="Ghi chú thêm..."
+                  className="w-full p-2.5 text-xs sm:text-sm text-slate-900 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="p-4 sm:p-5 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => setEditingDayModal(null)}
+                className="px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-600 bg-white border border-slate-300 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                Hủy bỏ
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSaveEditingDayModal}
+                className="px-5 py-2.5 text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
+              >
+                <Save size={16} />
+                <span>Lưu thay đổi</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

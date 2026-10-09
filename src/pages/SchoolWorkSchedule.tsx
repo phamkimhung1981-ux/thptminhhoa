@@ -1349,6 +1349,26 @@ export default function SchoolWorkSchedulePage() {
                   placeholder="Nhập chi tiết nội dung công việc phân công..."
                   className="w-full p-3 text-xs sm:text-sm text-slate-900 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none leading-relaxed"
                 />
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {[
+                    'Học sinh học tập theo TKB chính khóa',
+                    'Chào cờ đầu tuần / Sinh hoạt toàn trường',
+                    'Họp tổ chuyên môn định kỳ',
+                    'Sinh hoạt lớp cuối tuần',
+                    'Kiểm tra nền nếp, vệ sinh trường lớp',
+                    'Hoạt động trải nghiệm, hướng nghiệp',
+                    'Họp Ban Giám hiệu và các Tổ trưởng'
+                  ].map(template => (
+                    <button
+                      key={template}
+                      type="button"
+                      onClick={() => setFormContent(template)}
+                      className="text-[10px] font-semibold px-2 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md border border-blue-200 transition-colors cursor-pointer"
+                    >
+                      + {template}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Row 3: Người/bộ phận thực hiện */}
