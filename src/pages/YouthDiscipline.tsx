@@ -68,7 +68,13 @@ import {
 } from '../lib/youthDisciplineData';
 import { ClassInfo, Student, HomeroomAssignment } from '../types/homeroom';
 import { ACADEMIC_YEARS, getAllWeeksInYear, getWeekInfoByNumber } from '../utils/schoolWeekUtils';
-import { exportYouthDisciplineToExcel, exportYouthDisciplineToWord } from '../utils/youthDisciplineExport';
+import {
+  exportYouthDisciplineToExcel,
+  exportYouthDisciplineToWord,
+  exportStudentViolationsListToExcel,
+  exportStudentViolationsListToWord
+} from '../utils/youthDisciplineExport';
+import ExportStudentViolationsModal from '../components/discipline/ExportStudentViolationsModal';
 
 export default function YouthDisciplinePage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -147,6 +153,7 @@ export default function YouthDisciplinePage() {
   // Student Violations List Modal State
   const [selectedClassForStudentList, setSelectedClassForStudentList] = useState<{ classId: string; className: string } | null>(null);
   const [isClassStudentsModalOpen, setIsClassStudentsModalOpen] = useState<boolean>(false);
+  const [isExportStudentViolationsModalOpen, setIsExportStudentViolationsModalOpen] = useState<boolean>(false);
 
   // Individual Student Violation Details Modal State
   const [selectedStudentForViolationDetail, setSelectedStudentForViolationDetail] = useState<StudentWithViolationsSummary | null>(null);
@@ -1408,6 +1415,16 @@ export default function YouthDisciplinePage() {
               <span className="hidden sm:inline">Xuất Excel</span>
             </button>
 
+            <button
+              type="button"
+              onClick={() => setIsExportStudentViolationsModalOpen(true)}
+              className="px-3.5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white text-xs sm:text-sm font-black rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer border border-rose-400/40"
+              title="Xuất danh sách học sinh vi phạm nền nếp ra file Excel hoặc Word"
+            >
+              <ShieldAlert size={16} />
+              <span>Xuất DS HS vi phạm</span>
+            </button>
+
             <Link
               to="/youth-duty-schedule"
               className="px-3.5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer border border-indigo-400/40"
@@ -1854,6 +1871,16 @@ export default function YouthDisciplinePage() {
                   <span>Xóa danh sách...</span>
                 </button>
               )}
+
+              <button
+                type="button"
+                onClick={() => setIsExportStudentViolationsModalOpen(true)}
+                className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                title="Xuất danh sách học sinh vi phạm ra Excel hoặc Word"
+              >
+                <Download size={14} />
+                <span>Xuất DS HS vi phạm</span>
+              </button>
 
               <button
                 type="button"
@@ -3918,17 +3945,63 @@ export default function YouthDisciplinePage() {
             </div>
 
             {/* Footer */}
-            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs flex-shrink-0">
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs flex-shrink-0">
               <span className="font-bold text-slate-600">
                 Lớp {selectedClassForStudentList.className} • Tổng điểm bị trừ: <span className="text-rose-600 font-black">-{classStudentSummaries.reduce((sum, s) => sum + s.totalDeduction, 0)} đ</span>
               </span>
-              <button
-                type="button"
-                onClick={() => setIsClassStudentsModalOpen(false)}
-                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl transition-colors cursor-pointer"
-              >
-                Đóng
-              </button>
+              <div className="flex items-center gap-2">
+                {classStudentSummaries.length > 0 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        exportStudentViolationsListToExcel(
+                          classStudentSummaries.map(s => ({
+                            ...s,
+                            homeroomTeacherName: getHomeroomTeacherName(classes.find(c => c.id === s.classId || c.name === s.className))
+                          })),
+                          violations,
+                          `Lớp ${selectedClassForStudentList.className} - ${selectedWeek > 0 ? `Tuần ${selectedWeek}` : 'Cả năm'}`,
+                          selectedYear,
+                          'TRƯỜNG THPT MINH HÒA'
+                        );
+                      }}
+                      className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                      title="Xuất danh sách học sinh vi phạm của lớp này ra Excel"
+                    >
+                      <FileSpreadsheet size={15} />
+                      <span>Xuất Excel</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await exportStudentViolationsListToWord(
+                          classStudentSummaries.map(s => ({
+                            ...s,
+                            homeroomTeacherName: getHomeroomTeacherName(classes.find(c => c.id === s.classId || c.name === s.className))
+                          })),
+                          `Lớp ${selectedClassForStudentList.className} - ${selectedWeek > 0 ? `Tuần ${selectedWeek}` : 'Cả năm'}`,
+                          selectedYear,
+                          'TRƯỜNG THPT MINH HÒA'
+                        );
+                      }}
+                      className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                      title="Xuất văn bản Word danh sách học sinh vi phạm của lớp này"
+                    >
+                      <FileText size={15} />
+                      <span>Xuất Word</span>
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsClassStudentsModalOpen(false)}
+                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl transition-colors cursor-pointer"
+                >
+                  Đóng
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -4037,6 +4110,22 @@ export default function YouthDisciplinePage() {
           </div>
         </div>
       )}
+
+      {/* MODAL XUẤT DANH SÁCH HỌC SINH VI PHẠM NỀN NẾP */}
+      <ExportStudentViolationsModal
+        isOpen={isExportStudentViolationsModalOpen}
+        onClose={() => setIsExportStudentViolationsModalOpen(false)}
+        violations={violations}
+        classes={classes}
+        students={students}
+        teachers={teachers}
+        assignments={assignments}
+        workAssignments={workAssignments}
+        defaultSchoolYear={selectedYear}
+        defaultWeek={selectedWeek}
+        defaultMonth={selectedMonth}
+        defaultClassId={selectedClassId}
+      />
     </div>
   );
 }

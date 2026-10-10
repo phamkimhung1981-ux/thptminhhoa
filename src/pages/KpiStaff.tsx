@@ -23,12 +23,21 @@ import KpiStaffCriteriaManagerModal from '../components/kpiStaff/KpiStaffCriteri
 import { 
   UserCheck, Calendar, FileSpreadsheet, Plus, Search, 
   Award, Edit3, Printer, Trash2, 
-  TrendingUp, Users, FileText, Lock, Sliders
+  TrendingUp, Users, FileText, Lock, Sliders,
+  Loader2, CheckCircle2
 } from 'lucide-react';
 
 export default function KpiStaff() {
   const { user } = useAuth();
-  const { teachers, kpiStaffForms, setKpiStaffForms, kpiStaffPeriods, setKpiStaffPeriods, kpiStaffCriteria } = useAppContext();
+  const { 
+    teachers, 
+    kpiStaffForms, 
+    setKpiStaffForms, 
+    deleteKpiStaffForm,
+    kpiStaffPeriods, 
+    setKpiStaffPeriods, 
+    kpiStaffCriteria 
+  } = useAppContext();
 
   // Active period state
   const periods: KpiStaffPeriod[] = kpiStaffPeriods && kpiStaffPeriods.length > 0 ? kpiStaffPeriods : DEFAULT_STAFF_PERIODS;
@@ -44,6 +53,12 @@ export default function KpiStaff() {
   const [isCriteriaManagerOpen, setIsCriteriaManagerOpen] = useState<boolean>(false);
   const [selectedFormForEdit, setSelectedFormForEdit] = useState<KpiStaffForm | null>(null);
   const [selectedFormForPrint, setSelectedFormForPrint] = useState<KpiStaffForm | null>(null);
+
+  // Single Form Delete Modal State
+  const [formToDelete, setFormToDelete] = useState<KpiStaffForm | null>(null);
+  const [isDeletingSingleForm, setIsDeletingSingleForm] = useState<boolean>(false);
+  const [deleteSingleError, setDeleteSingleError] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Bulk Delete Modal State
   const [isDeleteAllModalOpen, setIsDeleteAllModalOpen] = useState<boolean>(false);
@@ -145,16 +160,36 @@ export default function KpiStaff() {
     }
   };
 
-  const handleDeleteForm = async (formId: string) => {
-    if (confirm('Bạn có chắc chắn muốn xóa phiếu đánh giá KPI này?')) {
-      try {
-        await deleteStaffFormFromFirestore(formId);
-        const updated = (kpiStaffForms || []).filter(f => f.id !== formId);
+  const handleOpenDeleteForm = (form: KpiStaffForm) => {
+    setDeleteSingleError(null);
+    setFormToDelete(form);
+  };
+
+  const handleConfirmDeleteSingleForm = async () => {
+    if (!formToDelete) return;
+    setIsDeletingSingleForm(true);
+    setDeleteSingleError(null);
+    try {
+      if (deleteKpiStaffForm) {
+        await deleteKpiStaffForm(formToDelete.id);
+      } else {
+        await deleteStaffFormFromFirestore(formToDelete.id);
+        const updated = (kpiStaffForms || []).filter(f => f.id !== formToDelete.id);
         setKpiStaffForms(updated);
-      } catch (err) {
-        console.error('Lỗi khi xóa phiếu:', err);
-        alert('Không thể xóa phiếu đánh giá KPI.');
       }
+
+      if (selectedFormForEdit?.id === formToDelete.id) {
+        setSelectedFormForEdit(null);
+      }
+
+      setToastMessage(`Đã xóa thành công phiếu KPI của ${formToDelete.employeeName}!`);
+      setTimeout(() => setToastMessage(null), 3000);
+      setFormToDelete(null);
+    } catch (err: any) {
+      console.error('Lỗi khi xóa phiếu KPI nhân viên:', err);
+      setDeleteSingleError(err?.message || 'Có lỗi xảy ra khi xóa phiếu. Vui lòng thử lại!');
+    } finally {
+      setIsDeletingSingleForm(false);
     }
   };
 
@@ -532,8 +567,9 @@ export default function KpiStaff() {
                           </button>
 
                           <button
-                            onClick={() => handleDeleteForm(f.id)}
-                            className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors"
+                            type="button"
+                            onClick={() => handleOpenDeleteForm(f)}
+                            className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors cursor-pointer"
                             title="Xóa phiếu"
                           >
                             <Trash2 size={14} />
@@ -578,7 +614,10 @@ export default function KpiStaff() {
         form={selectedFormForEdit}
         onSaveForm={handleSaveForm}
         onPrintForm={f => setSelectedFormForPrint(f)}
-        onDeleteForm={handleDeleteForm}
+        onDeleteForm={(formId) => {
+          const target = (kpiStaffForms || []).find(item => item.id === formId) || selectedFormForEdit;
+          if (target) handleOpenDeleteForm(target);
+        }}
       />
 
       <KpiStaffPrintModal
@@ -674,6 +713,102 @@ export default function KpiStaff() {
         onClose={() => setIsCriteriaManagerOpen(false)}
         criteria={kpiStaffCriteria || []}
       />
+
+      {/* Toast thông báo thành công */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-emerald-800 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-emerald-600 animate-slideUp">
+          <CheckCircle2 size={20} className="text-emerald-300 shrink-0" />
+          <span className="text-xs sm:text-sm font-bold">{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Modal xác nhận xóa 1 phiếu KPI nhân viên */}
+      {formToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-5 border border-slate-200">
+            <div className="flex items-center gap-3 text-rose-600">
+              <div className="w-12 h-12 rounded-2xl bg-rose-100 flex items-center justify-center shrink-0 border border-rose-200">
+                <Trash2 size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900">Xác nhận xóa phiếu KPI</h3>
+                <p className="text-xs text-rose-600 font-semibold">Hành động này không thể hoàn tác</p>
+              </div>
+            </div>
+
+            <div className="bg-rose-50/70 border border-rose-200/80 rounded-2xl p-4 text-xs space-y-2.5 text-rose-950">
+              <p className="font-semibold text-slate-700">
+                Bạn có chắc chắn muốn xóa phiếu đánh giá KPI của nhân viên sau:
+              </p>
+              
+              <div className="bg-white p-3.5 rounded-xl border border-rose-200 space-y-1.5 shadow-xs">
+                <p className="text-sm font-black text-rose-800 flex items-center gap-2">
+                  <span>👤</span>
+                  <span>{formToDelete.employeeName}</span>
+                  {formToDelete.employeeCode && (
+                    <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                      {formToDelete.employeeCode}
+                    </span>
+                  )}
+                </p>
+                <p className="text-slate-600 flex items-center gap-1.5">
+                  <span className="font-semibold">Vị trí:</span>
+                  <span className="font-bold text-slate-800">{formToDelete.position}</span>
+                </p>
+                <p className="text-slate-600 flex items-center gap-1.5">
+                  <span className="font-semibold">Kỳ đánh giá:</span>
+                  <span className="font-bold text-slate-800">{formToDelete.periodName}</span>
+                </p>
+                <p className="text-slate-600 flex items-center gap-1.5">
+                  <span className="font-semibold">Tổng điểm:</span>
+                  <span className="font-extrabold text-emerald-700">
+                    {formToDelete.managerTotalScore ?? formToDelete.ttcmTotalScore ?? formToDelete.totalScore} / 100 điểm
+                  </span>
+                </p>
+              </div>
+
+              <p className="text-[11.5px] text-slate-500 italic pt-1">
+                Lưu ý: Chỉ xóa phiếu đánh giá này khỏi danh sách, hoàn toàn không xóa hay ảnh hưởng đến hồ sơ của nhân viên trong hệ thống.
+              </p>
+            </div>
+
+            {deleteSingleError && (
+              <div className="p-3 bg-red-100 border border-red-300 rounded-xl text-xs text-red-800 font-semibold">
+                ⚠️ {deleteSingleError}
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                disabled={isDeletingSingleForm}
+                onClick={() => setFormToDelete(null)}
+                className="px-4 py-2.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingSingleForm}
+                onClick={handleConfirmDeleteSingleForm}
+                className="px-5 py-2.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 active:bg-rose-800 rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {isDeletingSingleForm ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    <span>Đang xóa...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={15} />
+                    <span>Xác nhận xóa</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

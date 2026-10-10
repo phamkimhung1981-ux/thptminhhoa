@@ -7,6 +7,7 @@ import {
   subscribeStaffForms, 
   saveStaffFormsToCache, 
   saveStaffFormToFirestore, 
+  deleteStaffFormFromFirestore,
   loadStaffFormsFromCache,
   subscribeStaffPeriods,
   saveStaffPeriodToFirestore,
@@ -56,6 +57,7 @@ interface AppState {
 
 interface AppContextType extends AppState {
   setKpiStaffForms: (forms: KpiStaffForm[]) => void;
+  deleteKpiStaffForm: (formId: string) => Promise<void>;
   setKpiStaffPeriods: (periods: KpiStaffPeriod[]) => void;
   setKpiStaffCriteria: (criteria: KpiStaffCriterion[]) => void;
   addModule: (module: SystemModule, currentUser?: User | null) => Promise<void>;
@@ -307,6 +309,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState(prev => ({ ...prev, kpiStaffForms: forms }));
     saveStaffFormsToCache(forms);
     forms.forEach(f => saveStaffFormToFirestore(f));
+  };
+
+  const deleteKpiStaffForm = async (formId: string) => {
+    try {
+      setState(prev => {
+        const remaining = (prev.kpiStaffForms || []).filter(f => f.id !== formId);
+        saveStaffFormsToCache(remaining);
+        return {
+          ...prev,
+          kpiStaffForms: remaining
+        };
+      });
+      await deleteStaffFormFromFirestore(formId);
+    } catch (e) {
+      console.error('Error deleting staff form in AppContext:', e);
+      handleDbError(e);
+      throw e;
+    }
   };
 
   const setKpiStaffPeriods = (periods: KpiStaffPeriod[]) => {
@@ -2286,7 +2306,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         importWorkAssignments, seedOrResetSchoolTasks,
          addCalendarEvent, updateCalendarEvent, deleteCalendarEvent, addNotification, updateNotification, deleteNotification,
         addReport, updateReport, deleteReport, checkAndRepairKpiData, updateSchoolStats,
-        setKpiStaffForms, setKpiStaffPeriods, setKpiStaffCriteria }}>
+        setKpiStaffForms, deleteKpiStaffForm, setKpiStaffPeriods, setKpiStaffCriteria }}>
       {state.error && (
         <div className="fixed top-0 left-0 right-0 bg-rose-500 text-white text-center py-2 z-50 shadow-md">
           {state.error}

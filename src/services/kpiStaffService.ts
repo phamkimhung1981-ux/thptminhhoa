@@ -242,6 +242,19 @@ export const deleteStaffFormFromFirestore = async (formId: string) => {
   try {
     const docRef = doc(db, STAFF_COLLECTIONS.FORMS, formId);
     await deleteDoc(docRef);
+
+    // Also check and clean up any docs matching id: formId
+    const colRef = collection(db, STAFF_COLLECTIONS.FORMS);
+    const snap = await getDocs(colRef);
+    const deleteBatch: Promise<void>[] = [];
+    snap.forEach(d => {
+      if (d.id === formId || (d.data() && d.data().id === formId)) {
+        deleteBatch.push(deleteDoc(d.ref));
+      }
+    });
+    if (deleteBatch.length > 0) {
+      await Promise.all(deleteBatch);
+    }
   } catch (err) {
     console.error('Error deleting staff form from Firestore:', err);
   } finally {

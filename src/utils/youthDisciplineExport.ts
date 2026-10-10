@@ -15,7 +15,8 @@ import {
 import {
   YouthViolationRecord,
   ClassDisciplineSummary,
-  YouthDisciplineSettings
+  YouthDisciplineSettings,
+  StudentWithViolationsSummary
 } from '../types/youthDiscipline';
 
 function downloadBlob(blob: Blob, fileName: string) {
@@ -759,3 +760,567 @@ export async function exportLateStudentsToWord(
   const safeFileName = `Danh_Sach_Hoc_Sinh_Di_Muon_${scopeTitle.replace(/[^a-zA-Z0-9]/g, '_')}.docx`;
   downloadBlob(blob, safeFileName);
 }
+
+// 5. EXPORT DANH SÁCH HỌC SINH VI PHẠM (EXCEL)
+export interface StudentViolationExportItem extends StudentWithViolationsSummary {
+  homeroomTeacherName?: string;
+  grade?: number | string;
+  gender?: string;
+  classification?: string;
+}
+
+export function exportStudentViolationsListToExcel(
+  students: StudentViolationExportItem[],
+  allViolations: YouthViolationRecord[],
+  scopeTitle: string,
+  schoolYear: string = '2026–2027',
+  schoolName: string = 'TRƯỜNG THPT MINH HÒA'
+) {
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1: Danh sách tổng hợp học sinh vi phạm
+  const summaryRows: any[][] = [
+    [schoolName.toUpperCase()],
+    ['ĐOÀN TNCS HỒ CHÍ MINH - BAN THI ĐUA NỀN NẾP HỌC SINH'],
+    [`DANH SÁCH HỌC SINH VI PHẠM NỀN NẾP - ${scopeTitle.toUpperCase()}`],
+    [`Năm học: ${schoolYear} • Ngày xuất báo cáo: ${new Date().toLocaleDateString('vi-VN')} • Tổng số học sinh vi phạm: ${students.length} em`],
+    [],
+    [
+      'STT',
+      'Họ và tên học sinh',
+      'Mã học sinh',
+      'Lớp',
+      'Giáo viên chủ nhiệm',
+      'Số lượt vi phạm',
+      'Tổng điểm trừ (đ)',
+      'Nội dung các lỗi vi phạm',
+      'Thời gian các lần vi phạm',
+      'Mức độ xử lý cao nhất',
+      'Người ghi nhận',
+      'Xếp loại nền nếp'
+    ]
+  ];
+
+  students.forEach((st, idx) => {
+    // Unique list of violation contents
+    const uniqueErrors = Array.from(
+      new Set(st.violations.map(v => v.criterionName || v.content || 'Vi phạm nội quy'))
+    ).join('; ');
+
+    // Detailed violation dates and weeks
+    const violationDates = st.violations
+      .map(v => `${v.violationDate}${v.weekNumber ? ` (T${v.weekNumber})` : ''}`)
+      .join('; ');
+
+    // Highest severity
+    const hasCritical = st.violations.some(
+      v => v.severity === 'Rất nghiêm trọng' || v.severity === 'Nghiêm trọng' || (v.severity as string) === 'RAT_NGHIEM_TRONG' || (v.severity as string) === 'NGHIEM_TRONG'
+    );
+    const hasMedium = st.violations.some(
+      v => v.severity === 'Vừa' || (v.severity as string) === 'TRUNG_BINH'
+    );
+    const highestSeverity = hasCritical ? 'Nghiêm trọng' : hasMedium ? 'Trung bình' : 'Nhẹ';
+
+    // Recorders
+    const recorders = Array.from(
+      new Set(st.violations.map(v => v.recordedByName).filter(Boolean))
+    ).join(', ') || 'Đoàn trường';
+
+    summaryRows.push([
+      idx + 1,
+      st.studentName,
+      st.studentCode || '—',
+      st.className,
+      st.homeroomTeacherName || '—',
+      st.violationCount,
+      -Math.abs(st.totalDeduction),
+      uniqueErrors,
+      violationDates,
+      highestSeverity,
+      recorders,
+      st.classification || (st.totalDeduction >= 20 ? 'Chưa đạt' : st.totalDeduction >= 10 ? 'Đạt' : 'Khá')
+    ]);
+  });
+
+  const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+  // Auto column widths
+  wsSummary['!cols'] = [
+    { wch: 6 },  // STT
+    { wch: 24 }, // Tên HS
+    { wch: 12 }, // Mã HS
+    { wch: 10 }, // Lớp
+    { wch: 22 }, // GVCN
+    { wch: 16 }, // Số lượt
+    { wch: 18 }, // Tổng điểm trừ
+    { wch: 45 }, // Nội dung lỗi
+    { wch: 28 }, // Thời gian
+    { wch: 18 }, // Mức độ
+    { wch: 22 }, // Người ghi nhận
+    { wch: 18 }  // Xếp loại
+  ];
+  XLSX.utils.book_append_sheet(wb, wsSummary, 'DSHocSinhViPham');
+
+  // Sheet 2: Chi tiết tất cả các lượt vi phạm của những học sinh này
+  const relevantViolations = allViolations.filter(v =>
+    students.some(s => s.studentId === v.studentId || (s.studentCode && s.studentCode === v.studentCode))
+  ).sort((a, b) => new Date(b.violationDate).getTime() - new Date(a.violationDate).getTime());
+
+  const detailRows: any[][] = [
+    ['SỔ CHI TIẾT TỪNG LƯỢT VI PHẠM NỀN NẾP HỌC SINH'],
+    [`Phạm vi: ${scopeTitle} - Năm học: ${schoolYear}`],
+    [],
+    [
+      'STT',
+      'Ngày',
+      'Giờ',
+      'Tuần',
+      'Họ và tên học sinh',
+      'Mã học sinh',
+      'Lớp',
+      'Nhóm vi phạm',
+      'Nội dung chi tiết vi phạm',
+      'Mức độ',
+      'Điểm trừ (đ)',
+      'Địa điểm',
+      'Người ghi nhận',
+      'Trạng thái'
+    ]
+  ];
+
+  relevantViolations.forEach((v, idx) => {
+    detailRows.push([
+      idx + 1,
+      v.violationDate,
+      v.violationTime || '',
+      `Tuần ${v.weekNumber || ''}`,
+      v.studentName,
+      v.studentCode || '',
+      v.className,
+      v.categoryName,
+      v.content || v.criterionName,
+      v.severity || 'Nhẹ',
+      -Math.abs(Number(v.minusPoints) || 0),
+      v.location || 'Tại trường',
+      v.recordedByName || 'Đoàn trường',
+      v.status === 'DA_XAC_NHAN' ? 'Đã xác nhận' : v.status === 'CHO_XAC_NHAN' ? 'Chờ xác nhận' : 'Ghi nhận'
+    ]);
+  });
+
+  const wsDetail = XLSX.utils.aoa_to_sheet(detailRows);
+  wsDetail['!cols'] = [
+    { wch: 6 },
+    { wch: 12 },
+    { wch: 10 },
+    { wch: 10 },
+    { wch: 24 },
+    { wch: 12 },
+    { wch: 10 },
+    { wch: 22 },
+    { wch: 40 },
+    { wch: 16 },
+    { wch: 14 },
+    { wch: 18 },
+    { wch: 20 },
+    { wch: 16 }
+  ];
+  XLSX.utils.book_append_sheet(wb, wsDetail, 'ChiTietTungLuot');
+
+  const safeFileName = `Danh_Sach_Hoc_Sinh_Vi_Pham_${scopeTitle.replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`;
+  XLSX.writeFile(wb, safeFileName);
+}
+
+// 6. EXPORT DANH SÁCH HỌC SINH VI PHẠM (WORD .DOCX)
+export async function exportStudentViolationsListToWord(
+  students: StudentViolationExportItem[],
+  scopeTitle: string,
+  schoolYear: string = '2026–2027',
+  schoolName: string = 'TRƯỜNG THPT MINH HÒA',
+  signerTitle: string = 'BÍ THƯ ĐOÀN TRƯỜNG',
+  signerName: string = 'Ban Thường vụ Đoàn trường'
+) {
+  const tableRows: DocxTableRow[] = [];
+
+  // Header row
+  tableRows.push(
+    new DocxTableRow({
+      tableHeader: true,
+      children: [
+        new DocxTableCell({
+          verticalAlign: DocxVerticalAlign.CENTER,
+          width: { size: 6, type: DocxWidthType.PERCENTAGE },
+          borders: tableBorders,
+          shading: { fill: 'F3F4F6' },
+          children: [
+            new DocxParagraph({
+              alignment: DocxAlignmentType.CENTER,
+              children: [new DocxTextRun({ text: 'STT', bold: true, font: 'Times New Roman', size: 20 })]
+            })
+          ]
+        }),
+        new DocxTableCell({
+          verticalAlign: DocxVerticalAlign.CENTER,
+          width: { size: 22, type: DocxWidthType.PERCENTAGE },
+          borders: tableBorders,
+          shading: { fill: 'F3F4F6' },
+          children: [
+            new DocxParagraph({
+              alignment: DocxAlignmentType.CENTER,
+              children: [new DocxTextRun({ text: 'Họ và tên học sinh', bold: true, font: 'Times New Roman', size: 20 })]
+            })
+          ]
+        }),
+        new DocxTableCell({
+          verticalAlign: DocxVerticalAlign.CENTER,
+          width: { size: 9, type: DocxWidthType.PERCENTAGE },
+          borders: tableBorders,
+          shading: { fill: 'F3F4F6' },
+          children: [
+            new DocxParagraph({
+              alignment: DocxAlignmentType.CENTER,
+              children: [new DocxTextRun({ text: 'Lớp', bold: true, font: 'Times New Roman', size: 20 })]
+            })
+          ]
+        }),
+        new DocxTableCell({
+          verticalAlign: DocxVerticalAlign.CENTER,
+          width: { size: 16, type: DocxWidthType.PERCENTAGE },
+          borders: tableBorders,
+          shading: { fill: 'F3F4F6' },
+          children: [
+            new DocxParagraph({
+              alignment: DocxAlignmentType.CENTER,
+              children: [new DocxTextRun({ text: 'GVCN', bold: true, font: 'Times New Roman', size: 20 })]
+            })
+          ]
+        }),
+        new DocxTableCell({
+          verticalAlign: DocxVerticalAlign.CENTER,
+          width: { size: 9, type: DocxWidthType.PERCENTAGE },
+          borders: tableBorders,
+          shading: { fill: 'F3F4F6' },
+          children: [
+            new DocxParagraph({
+              alignment: DocxAlignmentType.CENTER,
+              children: [new DocxTextRun({ text: 'Số lần', bold: true, font: 'Times New Roman', size: 20 })]
+            })
+          ]
+        }),
+        new DocxTableCell({
+          verticalAlign: DocxVerticalAlign.CENTER,
+          width: { size: 10, type: DocxWidthType.PERCENTAGE },
+          borders: tableBorders,
+          shading: { fill: 'F3F4F6' },
+          children: [
+            new DocxParagraph({
+              alignment: DocxAlignmentType.CENTER,
+              children: [new DocxTextRun({ text: 'Điểm trừ', bold: true, font: 'Times New Roman', size: 20 })]
+            })
+          ]
+        }),
+        new DocxTableCell({
+          verticalAlign: DocxVerticalAlign.CENTER,
+          width: { size: 28, type: DocxWidthType.PERCENTAGE },
+          borders: tableBorders,
+          shading: { fill: 'F3F4F6' },
+          children: [
+            new DocxParagraph({
+              alignment: DocxAlignmentType.CENTER,
+              children: [new DocxTextRun({ text: 'Nội dung các lỗi vi phạm', bold: true, font: 'Times New Roman', size: 20 })]
+            })
+          ]
+        })
+      ]
+    })
+  );
+
+  // Rows for each student
+  students.forEach((st, idx) => {
+    const uniqueErrors = Array.from(
+      new Set(st.violations.map(v => v.criterionName || v.content || 'Vi phạm'))
+    ).join('; ');
+
+    tableRows.push(
+      new DocxTableRow({
+        children: [
+          new DocxTableCell({
+            verticalAlign: DocxVerticalAlign.CENTER,
+            borders: tableBorders,
+            children: [
+              new DocxParagraph({
+                alignment: DocxAlignmentType.CENTER,
+                children: [new DocxTextRun({ text: String(idx + 1), font: 'Times New Roman', size: 20 })]
+              })
+            ]
+          }),
+          new DocxTableCell({
+            verticalAlign: DocxVerticalAlign.CENTER,
+            borders: tableBorders,
+            children: [
+              new DocxParagraph({
+                children: [
+                  new DocxTextRun({ text: st.studentName, bold: true, font: 'Times New Roman', size: 20 }),
+                  ...(st.studentCode ? [new DocxTextRun({ text: `\n(${st.studentCode})`, font: 'Times New Roman', size: 18, color: '666666' })] : [])
+                ]
+              })
+            ]
+          }),
+          new DocxTableCell({
+            verticalAlign: DocxVerticalAlign.CENTER,
+            borders: tableBorders,
+            children: [
+              new DocxParagraph({
+                alignment: DocxAlignmentType.CENTER,
+                children: [new DocxTextRun({ text: st.className, bold: true, font: 'Times New Roman', size: 20, color: '1E3A8A' })]
+              })
+            ]
+          }),
+          new DocxTableCell({
+            verticalAlign: DocxVerticalAlign.CENTER,
+            borders: tableBorders,
+            children: [
+              new DocxParagraph({
+                children: [new DocxTextRun({ text: st.homeroomTeacherName || '—', font: 'Times New Roman', size: 20 })]
+              })
+            ]
+          }),
+          new DocxTableCell({
+            verticalAlign: DocxVerticalAlign.CENTER,
+            borders: tableBorders,
+            children: [
+              new DocxParagraph({
+                alignment: DocxAlignmentType.CENTER,
+                children: [new DocxTextRun({ text: String(st.violationCount), bold: true, font: 'Times New Roman', size: 20 })]
+              })
+            ]
+          }),
+          new DocxTableCell({
+            verticalAlign: DocxVerticalAlign.CENTER,
+            borders: tableBorders,
+            children: [
+              new DocxParagraph({
+                alignment: DocxAlignmentType.CENTER,
+                children: [new DocxTextRun({ text: `-${st.totalDeduction} đ`, bold: true, font: 'Times New Roman', size: 20, color: 'DC2626' })]
+              })
+            ]
+          }),
+          new DocxTableCell({
+            verticalAlign: DocxVerticalAlign.CENTER,
+            borders: tableBorders,
+            children: [
+              new DocxParagraph({
+                children: [new DocxTextRun({ text: uniqueErrors, font: 'Times New Roman', size: 19 })]
+              })
+            ]
+          })
+        ]
+      })
+    );
+  });
+
+  const totalDeductionsAll = students.reduce((sum, s) => sum + s.totalDeduction, 0);
+  const totalViolationsAll = students.reduce((sum, s) => sum + s.violationCount, 0);
+
+  const docx = new DocxDocument({
+    sections: [
+      {
+        properties: {},
+        children: [
+          // Header Two Columns
+          new DocxTable({
+            width: { size: 100, type: DocxWidthType.PERCENTAGE },
+            borders: {
+              top: { style: DocxBorderStyle.NONE },
+              bottom: { style: DocxBorderStyle.NONE },
+              left: { style: DocxBorderStyle.NONE },
+              right: { style: DocxBorderStyle.NONE },
+              insideHorizontal: { style: DocxBorderStyle.NONE },
+              insideVertical: { style: DocxBorderStyle.NONE }
+            },
+            rows: [
+              new DocxTableRow({
+                children: [
+                  new DocxTableCell({
+                    width: { size: 50, type: DocxWidthType.PERCENTAGE },
+                    borders: {
+                      top: { style: DocxBorderStyle.NONE },
+                      bottom: { style: DocxBorderStyle.NONE },
+                      left: { style: DocxBorderStyle.NONE },
+                      right: { style: DocxBorderStyle.NONE }
+                    },
+                    children: [
+                      new DocxParagraph({
+                        alignment: DocxAlignmentType.CENTER,
+                        children: [new DocxTextRun({ text: 'SỞ GIÁO DỤC VÀ ĐÀO TẠO', font: 'Times New Roman', size: 20 })]
+                      }),
+                      new DocxParagraph({
+                        alignment: DocxAlignmentType.CENTER,
+                        children: [new DocxTextRun({ text: schoolName.toUpperCase(), bold: true, font: 'Times New Roman', size: 20 })]
+                      }),
+                      new DocxParagraph({
+                        alignment: DocxAlignmentType.CENTER,
+                        children: [new DocxTextRun({ text: 'ĐOÀN TNCS HỒ CHÍ MINH', bold: true, font: 'Times New Roman', size: 20, color: '1E3A8A' })]
+                      })
+                    ]
+                  }),
+                  new DocxTableCell({
+                    width: { size: 50, type: DocxWidthType.PERCENTAGE },
+                    borders: {
+                      top: { style: DocxBorderStyle.NONE },
+                      bottom: { style: DocxBorderStyle.NONE },
+                      left: { style: DocxBorderStyle.NONE },
+                      right: { style: DocxBorderStyle.NONE }
+                    },
+                    children: [
+                      new DocxParagraph({
+                        alignment: DocxAlignmentType.CENTER,
+                        children: [new DocxTextRun({ text: 'CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM', bold: true, font: 'Times New Roman', size: 20 })]
+                      }),
+                      new DocxParagraph({
+                        alignment: DocxAlignmentType.CENTER,
+                        children: [new DocxTextRun({ text: 'Độc lập - Tự do - Hạnh phúc', bold: true, font: 'Times New Roman', size: 20 })]
+                      }),
+                      new DocxParagraph({
+                        alignment: DocxAlignmentType.CENTER,
+                        children: [new DocxTextRun({ text: '-----------------------', font: 'Times New Roman', size: 18 })]
+                      })
+                    ]
+                  })
+                ]
+              })
+            ]
+          }),
+
+          // Space
+          new DocxParagraph({ spacing: { before: 200, after: 100 } }),
+
+          // Document Title
+          new DocxParagraph({
+            alignment: DocxAlignmentType.CENTER,
+            children: [
+              new DocxTextRun({
+                text: 'DANH SÁCH HỌC SINH VI PHẠM NỀN NẾP & KỶ LUẬT',
+                bold: true,
+                font: 'Times New Roman',
+                size: 26,
+                color: '991B1B'
+              })
+            ]
+          }),
+          new DocxParagraph({
+            alignment: DocxAlignmentType.CENTER,
+            spacing: { after: 200 },
+            children: [
+              new DocxTextRun({
+                text: `${scopeTitle.toUpperCase()} – NĂM HỌC ${schoolYear}`,
+                bold: true,
+                italics: true,
+                font: 'Times New Roman',
+                size: 22
+              })
+            ]
+          }),
+          new DocxParagraph({
+            alignment: DocxAlignmentType.LEFT,
+            spacing: { after: 140 },
+            children: [
+              new DocxTextRun({
+                text: `Tổng số học sinh vi phạm: ${students.length} em  |  Tổng số lượt vi phạm: ${totalViolationsAll} lượt  |  Tổng điểm trừ: -${totalDeductionsAll} điểm`,
+                italics: true,
+                font: 'Times New Roman',
+                size: 20
+              })
+            ]
+          }),
+
+          // Table
+          new DocxTable({
+            width: { size: 100, type: DocxWidthType.PERCENTAGE },
+            rows: tableRows
+          }),
+
+          // Footer info and signatures
+          new DocxParagraph({ spacing: { before: 240, after: 120 } }),
+          new DocxTable({
+            width: { size: 100, type: DocxWidthType.PERCENTAGE },
+            borders: {
+              top: { style: DocxBorderStyle.NONE },
+              bottom: { style: DocxBorderStyle.NONE },
+              left: { style: DocxBorderStyle.NONE },
+              right: { style: DocxBorderStyle.NONE },
+              insideHorizontal: { style: DocxBorderStyle.NONE },
+              insideVertical: { style: DocxBorderStyle.NONE }
+            },
+            rows: [
+              new DocxTableRow({
+                children: [
+                  new DocxTableCell({
+                    width: { size: 50, type: DocxWidthType.PERCENTAGE },
+                    borders: {
+                      top: { style: DocxBorderStyle.NONE },
+                      bottom: { style: DocxBorderStyle.NONE },
+                      left: { style: DocxBorderStyle.NONE },
+                      right: { style: DocxBorderStyle.NONE }
+                    },
+                    children: [
+                      new DocxParagraph({
+                        children: [
+                          new DocxTextRun({ text: 'Nơi nhận:', bold: true, italics: true, font: 'Times New Roman', size: 18 })
+                        ]
+                      }),
+                      new DocxParagraph({
+                        children: [
+                          new DocxTextRun({ text: '- Ban Giám hiệu (để báo cáo);\n- GVCN các lớp (để phối hợp nhắc nhở);\n- Lưu: VP Đoàn trường.', font: 'Times New Roman', size: 18 })
+                        ]
+                      })
+                    ]
+                  }),
+                  new DocxTableCell({
+                    width: { size: 50, type: DocxWidthType.PERCENTAGE },
+                    borders: {
+                      top: { style: DocxBorderStyle.NONE },
+                      bottom: { style: DocxBorderStyle.NONE },
+                      left: { style: DocxBorderStyle.NONE },
+                      right: { style: DocxBorderStyle.NONE }
+                    },
+                    children: [
+                      new DocxParagraph({
+                        alignment: DocxAlignmentType.CENTER,
+                        children: [
+                          new DocxTextRun({ text: 'Minh Hòa, ngày ..... tháng ..... năm 2026', italics: true, font: 'Times New Roman', size: 20 })
+                        ]
+                      }),
+                      new DocxParagraph({
+                        alignment: DocxAlignmentType.CENTER,
+                        children: [
+                          new DocxTextRun({ text: signerTitle.toUpperCase(), bold: true, font: 'Times New Roman', size: 20 })
+                        ]
+                      }),
+                      new DocxParagraph({
+                        alignment: DocxAlignmentType.CENTER,
+                        children: [
+                          new DocxTextRun({ text: '(Ký, ghi rõ họ và tên)', italics: true, font: 'Times New Roman', size: 18 })
+                        ]
+                      }),
+                      new DocxParagraph({ spacing: { before: 800 } }),
+                      new DocxParagraph({
+                        alignment: DocxAlignmentType.CENTER,
+                        children: [
+                          new DocxTextRun({ text: signerName, bold: true, font: 'Times New Roman', size: 20 })
+                        ]
+                      })
+                    ]
+                  })
+                ]
+              })
+            ]
+          })
+        ]
+      }
+    ]
+  });
+
+  const blob = await DocxPacker.toBlob(docx);
+  const safeFileName = `Danh_Sach_Hoc_Sinh_Vi_Pham_${scopeTitle.replace(/[^a-zA-Z0-9]/g, '_')}.docx`;
+  downloadBlob(blob, safeFileName);
+}
+

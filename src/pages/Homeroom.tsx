@@ -90,6 +90,7 @@ import ResetConductModal from '../components/homeroom/ResetConductModal';
 import TeacherAssessmentModal from '../components/homeroom/TeacherAssessmentModal';
 import BulkGoodAssessmentModal from '../components/homeroom/BulkGoodAssessmentModal';
 import EvaluationRatingConfigModal from '../components/homeroom/EvaluationRatingConfigModal';
+import ExportStudentViolationsModal from '../components/discipline/ExportStudentViolationsModal';
 
 export default function Homeroom() {
   const { user } = useAuth();
@@ -245,6 +246,7 @@ export default function Homeroom() {
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [isSavingAbc, setIsSavingAbc] = useState<boolean>(false);
   const [abcSaveStatusText, setAbcSaveStatusText] = useState<string>('');
+  const [isExportStudentViolationsModalOpen, setIsExportStudentViolationsModalOpen] = useState(false);
 
   useEffect(() => {
     setSelectedStudentIds([]);
@@ -1775,6 +1777,14 @@ export default function Homeroom() {
               >
                 <Download size={14} /> XUẤT FILE EXCEL
               </button>
+              <button
+                type="button"
+                onClick={() => setIsExportStudentViolationsModalOpen(true)}
+                className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                title="Xuất danh sách học sinh vi phạm nền nếp ra file Excel hoặc Word"
+              >
+                <ShieldAlert size={14} /> XUẤT DS HS VI PHẠM
+              </button>
 
               {classStudents.length > 0 && (
                 <button
@@ -2265,10 +2275,20 @@ export default function Homeroom() {
       {/* TAB 5: CẢNH BÁO */}
       {activeTab === 'alerts' && (
         <div className="bg-white rounded-2xl shadow-sm border border-rose-200 p-6 space-y-4">
-          <h3 className="text-base font-bold text-rose-800 flex items-center gap-2">
-            <ShieldAlert size={20} className="text-rose-600" />
-            DANH SÁCH CẢNH BÁO RÈN LUYỆN NỀN NẾP - {selectedMonth.toUpperCase()}
-          </h3>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-base font-bold text-rose-800 flex items-center gap-2">
+              <ShieldAlert size={20} className="text-rose-600" />
+              DANH SÁCH CẢNH BÁO RÈN LUYỆN NỀN NẾP - {selectedMonth.toUpperCase()} (LỚP {selectedClass?.name})
+            </h3>
+            <button
+              type="button"
+              onClick={() => setIsExportStudentViolationsModalOpen(true)}
+              className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow transition-colors flex items-center gap-1.5 cursor-pointer"
+              title="Xuất danh sách học sinh vi phạm nền nếp ra Excel hoặc Word"
+            >
+              <Download size={14} /> Xuất DS học sinh vi phạm
+            </button>
+          </div>
           <p className="text-xs text-slate-600">
             Các học sinh có điểm rèn luyện suy giảm hoặc vi phạm lỗi nghiêm trọng trong {selectedMonth} cần GVCN trực tiếp gặp mặt nhắc nhở và thông báo cho phụ huynh.
           </p>
@@ -3602,6 +3622,20 @@ export default function Homeroom() {
           </div>
         </div>
       )}
+
+      {/* Export Student Violations Modal */}
+      <ExportStudentViolationsModal
+        isOpen={isExportStudentViolationsModalOpen}
+        onClose={() => setIsExportStudentViolationsModalOpen(false)}
+        violations={youthViolations}
+        classes={classes}
+        students={classStudents.length > 0 ? classStudents : students}
+        teachers={teachers}
+        assignments={assignments}
+        defaultSchoolYear={selectedSchoolYear}
+        defaultMonth={selMonthNum}
+        defaultClassId={selectedClass?.id || 'All'}
+      />
     </div>
   );
 }
