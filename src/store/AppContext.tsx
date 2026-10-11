@@ -414,9 +414,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setState(prev => ({
           ...prev,
           schoolStats: {
-            totalTeachers: d.totalTeachers ?? (prev.teachers.length > 0 ? prev.teachers.length : 42),
-            totalStudents: d.totalStudents ?? 1236,
-            totalClasses: d.totalClasses ?? 36,
+            totalTeachers: d.totalTeachers ?? (prev.teachers.length > 0 ? prev.teachers.length : 51),
+            totalStudents: d.totalStudents ?? prev.schoolStats.totalStudents,
+            totalClasses: d.totalClasses ?? prev.schoolStats.totalClasses,
             schoolYear: d.schoolYear ?? '2026 - 2027',
             motto: d.motto ?? 'Nơi chắp cánh những ước mơ',
             welcomeMessage: d.welcomeMessage ?? 'Chào mừng bạn!'
@@ -424,9 +424,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }));
       } else {
         setDoc(statsDocRef, {
-          totalTeachers: 42,
-          totalStudents: 1236,
-          totalClasses: 36,
+          totalTeachers: 51,
           schoolYear: '2026 - 2027',
           motto: 'Nơi chắp cánh những ước mơ',
           welcomeMessage: 'Chào mừng bạn!'

@@ -22,12 +22,32 @@ import {
 import { useAppContext } from '../store/AppContext';
 import { useAuth } from '../store/AuthContext';
 import { SCHOOL_NAME_UPPER, SCHOOL_SHORT_NAME, SCHOOL_MOTTO } from '../constants/schoolConfig';
+import { homeroomService } from '../services/homeroomService';
+import { ClassInfo, Student } from '../types/homeroom';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { teachers, schoolStats } = useAppContext();
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Real-time Classes and Students from database
+  const [classes, setClasses] = useState<ClassInfo[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
+
+  useEffect(() => {
+    homeroomService.seedIfEmpty();
+    const unsubCls = homeroomService.subscribeClasses((clsList) => {
+      setClasses(clsList);
+    });
+    const unsubStd = homeroomService.subscribeStudents((stdList) => {
+      setStudents(stdList);
+    });
+    return () => {
+      unsubCls();
+      unsubStd();
+    };
+  }, []);
 
   // Background image state: prioritize user's uploaded image if set in localStorage,
   // otherwise fallback to the provided school asset.
@@ -50,10 +70,13 @@ export default function Dashboard() {
   const currentDayName = dayNames[currentDate.getDay()];
   const formattedDayMonthYear = `${String(currentDate.getDate()).padStart(2, '0')}/${String(currentDate.getMonth() + 1).padStart(2, '0')}/${currentDate.getFullYear()}`;
 
-  // Database dynamic statistics
-  const totalTeachers = teachers && teachers.length > 0 ? teachers.length : (schoolStats?.totalTeachers || 42);
-  const totalStudents = schoolStats?.totalStudents ? schoolStats.totalStudents.toLocaleString('vi-VN') : '1.236';
-  const totalClasses = schoolStats?.totalClasses || 36;
+  // Database dynamic statistics from actual Firestore collections
+  const totalTeachers = teachers && teachers.length > 0 ? teachers.length : (schoolStats?.totalTeachers || 51);
+  const totalClasses = classes.length > 0 ? classes.length : (schoolStats?.totalClasses || 7);
+
+  const sumClassStudents = classes.reduce((sum, c) => sum + (Number(c.totalStudents) || 0), 0);
+  const rawStudentCount = students.length > 0 ? students.length : sumClassStudents;
+  const totalStudents = rawStudentCount > 0 ? rawStudentCount.toLocaleString('vi-VN') : (schoolStats?.totalStudents ? schoolStats.totalStudents.toLocaleString('vi-VN') : '268');
   const schoolYear = schoolStats?.schoolYear || '2026 - 2027';
 
   // Main Modules with icons, descriptions and corresponding app routes
