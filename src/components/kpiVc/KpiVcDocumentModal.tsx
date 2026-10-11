@@ -356,11 +356,11 @@ export default function KpiVcDocumentModal({
           if (found) {
             return {
               ...defItem,
-              selfScore: typeof found.selfScore === 'number' ? found.selfScore : defItem.maxScore,
+              selfScore: typeof found.selfScore === 'number' && !isNaN(found.selfScore) ? found.selfScore : null,
               note: found.note || '',
-              ttcmScore: found.ttcmScore !== undefined ? found.ttcmScore : null,
+              ttcmScore: typeof found.ttcmScore === 'number' && !isNaN(found.ttcmScore) ? found.ttcmScore : null,
               ttcmComment: found.ttcmComment || '',
-              managerScore: found.managerScore !== undefined ? found.managerScore : null,
+              managerScore: typeof found.managerScore === 'number' && !isNaN(found.managerScore) ? found.managerScore : null,
               managerComment: found.managerComment || ''
             };
           }
@@ -373,23 +373,20 @@ export default function KpiVcDocumentModal({
       itemsToUse = itemsToUse.map(it => {
         const crit = criteriaMap.get(it.criterionId) || currentCriteria.find(c => c.code === it.criterionCode);
         if (crit) {
-          const hadMaxSelf = typeof it.selfScore === 'number' && it.selfScore >= it.maxScore;
-          const hadMaxTtcm = typeof it.ttcmScore === 'number' && it.ttcmScore >= it.maxScore;
-          const hadMaxMgr = typeof it.managerScore === 'number' && it.managerScore >= it.maxScore;
           const newMax = crit.maxScore;
           return {
             ...it,
             maxScore: newMax,
-            selfScore: hadMaxSelf ? newMax : Math.min(newMax, it.selfScore ?? newMax),
-            ttcmScore: typeof it.ttcmScore === 'number' ? (hadMaxTtcm ? newMax : Math.min(newMax, it.ttcmScore)) : it.ttcmScore,
-            managerScore: typeof it.managerScore === 'number' ? (hadMaxMgr ? newMax : Math.min(newMax, it.managerScore)) : it.managerScore,
+            selfScore: typeof it.selfScore === 'number' && !isNaN(it.selfScore) ? Math.min(newMax, Math.max(0, it.selfScore)) : null,
+            ttcmScore: typeof it.ttcmScore === 'number' && !isNaN(it.ttcmScore) ? Math.min(newMax, Math.max(0, it.ttcmScore)) : null,
+            managerScore: typeof it.managerScore === 'number' && !isNaN(it.managerScore) ? Math.min(newMax, Math.max(0, it.managerScore)) : null,
           };
         }
         return it;
       });
       
       setScoreItems(itemsToUse);
-      setSelfClassification(form.selfClassification || resolveVcClassification(form.totalScore));
+      setSelfClassification(form.selfClassification || (form.totalScore > 0 ? resolveVcClassification(form.totalScore) : 'Chưa tự chấm'));
       setSelfDate(form.selfDate || todayStr);
       setSelfComment(form.selfComment || '');
       setLeaderClassification(form.leaderClassification || form.selfClassification || 'Hoàn thành tốt nhiệm vụ');
@@ -433,8 +430,7 @@ export default function KpiVcDocumentModal({
       const initialItems = initializeVcScoreItems(initialCriteria);
       setScoreItems(initialItems);
 
-      const initTotals = calculateVcTotals(initialItems);
-      setSelfClassification(resolveVcClassification(initTotals.totalScore));
+      setSelfClassification('Chưa tự chấm');
       setSelfDate(todayStr);
       setSelfComment('');
       setLeaderClassification('Hoàn thành tốt nhiệm vụ');
@@ -556,7 +552,7 @@ export default function KpiVcDocumentModal({
     setLeaderSignName('');
   };
 
-  const handleSelfScoreChange = (criterionId: string, value: number, selectedLevelCode?: string) => {
+  const handleSelfScoreChange = (criterionId: string, value: number | null, selectedLevelCode?: string) => {
     setScoreItems(prev => {
       const existingIdx = prev.findIndex(i => i.criterionId === criterionId);
       if (existingIdx >= 0) {
@@ -574,13 +570,13 @@ export default function KpiVcDocumentModal({
             criterionId,
             selfScore: value,
             selectedLevelCode
-          }
+          } as any
         ];
       }
     });
   };
 
-  const handleTtcmScoreChange = (criterionId: string, value: number) => {
+  const handleTtcmScoreChange = (criterionId: string, value: number | null) => {
     setScoreItems(prev => {
       const existingIdx = prev.findIndex(i => i.criterionId === criterionId);
       if (existingIdx >= 0) {
@@ -595,9 +591,9 @@ export default function KpiVcDocumentModal({
           ...prev,
           {
             criterionId,
-            selfScore: 0,
+            selfScore: null,
             ttcmScore: value
-          }
+          } as any
         ];
       }
     });
@@ -618,15 +614,15 @@ export default function KpiVcDocumentModal({
           ...prev,
           {
             criterionId,
-            selfScore: 0,
+            selfScore: null,
             note
-          }
+          } as any
         ];
       }
     });
   };
 
-  const handleManagerScoreChange = (criterionId: string, value: number) => {
+  const handleManagerScoreChange = (criterionId: string, value: number | null) => {
     setScoreItems(prev => {
       const existingIdx = prev.findIndex(i => i.criterionId === criterionId);
       if (existingIdx >= 0) {
@@ -641,9 +637,9 @@ export default function KpiVcDocumentModal({
           ...prev,
           {
             criterionId,
-            selfScore: 0,
+            selfScore: null,
             managerScore: value
-          }
+          } as any
         ];
       }
     });
@@ -758,16 +754,16 @@ export default function KpiVcDocumentModal({
           criteriaSnapshot: snapshot,
           items: initialItems,
 
-          groupScores: { group_I: 15, group_II: 15, group_III: 70 },
+          groupScores: { group_I: 0, group_II: 0, group_III: 0 },
           ttcmGroupScores: {},
           managerGroupScores: {},
-          totalScore: 100,
+          totalScore: 0,
           ttcmTotalScore: null,
           managerTotalScore: null,
           maxTotalScore: 100,
 
           // Tự đánh giá
-          selfClassification: 'Hoàn thành tốt nhiệm vụ',
+          selfClassification: 'Chưa tự chấm',
           selfDate: selfDate || new Date().toLocaleDateString('vi-VN'),
           selfSignName: teacherObj.name || '',
           selfComment: evaluationNote || '',
@@ -807,7 +803,7 @@ export default function KpiVcDocumentModal({
           managerGeneralComment: '',
           managerEvaluatedAt: null,
 
-          status: isDraft ? 'draft' : 'self_evaluated',
+          status: 'draft',
           createdBy: actor.name
         };
 
@@ -861,6 +857,19 @@ export default function KpiVcDocumentModal({
       const evaluatorRoleResolved = evaluatorObj ? resolveVcTeacherPosition(evaluatorObj, departments) : '';
       const evaluatorIdResolved = selectedEvaluatorId || '';
 
+      let updatedStatus: KpiVcFormStatus = finalStatus;
+      if (canEditSelf && hasAnySelfScore && finalStatus !== 'completed') {
+        updatedStatus = 'self_evaluated';
+      }
+      if (canEditTtcm && hasAnyTtcmScore && finalStatus !== 'completed') {
+        updatedStatus = 'ttcm_evaluated';
+      }
+      if (canEditManager && hasAnyManagerScore) {
+        updatedStatus = 'completed';
+      }
+
+      const computedSelfClassification = hasAnySelfScore ? (selfClassification || resolveVcClassification(totalScore, form.periodId)) : 'Chưa tự chấm';
+
       const updatePayload: Partial<KpiVcForm> = {
         employeeId: form.employeeId,
         employeeName: form.employeeName,
@@ -876,7 +885,7 @@ export default function KpiVcDocumentModal({
         totalScore,
         ttcmTotalScore: hasAnyTtcmScore ? ttcmTotalScore : null,
         managerTotalScore: hasAnyManagerScore ? managerTotalScore : null,
-        selfClassification: selfClassification || 'Hoàn thành tốt nhiệm vụ',
+        selfClassification: computedSelfClassification,
         selfDate: selfDate || new Date().toLocaleDateString('vi-VN'),
         selfComment: selfComment || '',
         ttcmClassification: ttcmClassification || form.ttcmClassification || 'Hoàn thành tốt nhiệm vụ',
@@ -899,11 +908,11 @@ export default function KpiVcDocumentModal({
         evaluatorName: evaluatorNameResolved,
         evaluatorRole: evaluatorRoleResolved,
         managerEvaluatedAt: hasAnyManagerScore ? (form.managerEvaluatedAt || new Date().toISOString()) : form.managerEvaluatedAt,
-        status: finalStatus
+        status: updatedStatus
       };
 
       await updateVcForm(formId, updatePayload, actor);
-      setSuccessMsg(finalStatus === 'completed' ? 'Đã hoàn thành và chốt lưu phiếu đánh giá thành công!' : 'Đã cập nhật phiếu đánh giá thành công!');
+      setSuccessMsg(updatedStatus === 'completed' ? 'Đã hoàn thành và chốt lưu phiếu đánh giá thành công!' : 'Đã cập nhật phiếu đánh giá thành công!');
       
       if (onSaved) onSaved(formId);
       setTimeout(() => {
@@ -943,11 +952,36 @@ export default function KpiVcDocumentModal({
     return false;
   }, [user, form, isAdmin]);
 
+  // Step completion checks for 2-step evaluation workflow
+  const hasAnySelfScore = useMemo(() => {
+    return scoreItems.some(it => typeof it.selfScore === 'number' && it.selfScore !== null && !isNaN(it.selfScore));
+  }, [scoreItems]);
+
+  const isStep1Complete = useMemo(() => {
+    if (!form) return false;
+    if (form.status === 'self_evaluated' || form.status === 'ttcm_evaluated' || form.status === 'completed' || form.status === 'locked') {
+      return true;
+    }
+    return form.status !== 'draft' && hasAnySelfScore;
+  }, [form, hasAnySelfScore]);
+
+  const isStep2Complete = useMemo(() => {
+    if (!form) return false;
+    if (form.hasTtcmEval === false) return true;
+    if (form.status === 'ttcm_evaluated' || form.status === 'completed' || form.status === 'locked') {
+      return true;
+    }
+    return form.ttcmStatus === 'evaluated' || hasAnyTtcmScore;
+  }, [form, hasAnyTtcmScore]);
+
   const isLocked = form?.status === 'locked';
   const isReadOnly = mode === 'view' || isLocked;
+
   const canEditSelf = (mode === 'create' || mode === 'edit' || mode === 'self_eval') && !isLocked;
-  const canEditTtcm = (mode === 'create' || mode === 'edit' || mode === 'ttcm_eval' || isTtcmForThisForm) && !isLocked;
-  const canEditManager = (mode === 'create' || mode === 'edit' || mode === 'leader_eval' || isBghForThisForm) && !isLocked;
+  // TTCM chỉ được chấm sau khi Cá nhân đã tự chấm và lưu phiếu
+  const canEditTtcm = (mode === 'create' || mode === 'edit' || mode === 'ttcm_eval' || isTtcmForThisForm) && !isLocked && isStep1Complete;
+  // BGH chỉ được chấm sau khi TTCM đã hoàn thành và lưu kết quả đánh giá (hoặc không cần TTCM)
+  const canEditManager = (mode === 'create' || mode === 'edit' || mode === 'leader_eval' || isBghForThisForm) && !isLocked && isStep1Complete && isStep2Complete;
 
   const canChangeEvaluator = useMemo(() => {
     if (isLocked) return false;
@@ -2056,7 +2090,7 @@ export default function KpiVcDocumentModal({
 
                         {groupCriteria.map((criterion, cIdx) => {
                           const itemScore = scoreItems.find(it => it.criterionId === criterion.id);
-                          const currentSelfScore = itemScore?.selfScore ?? criterion.maxScore;
+                          const currentSelfScore = typeof itemScore?.selfScore === 'number' && !isNaN(itemScore.selfScore) ? itemScore.selfScore : null;
                           const currentTtcmScore = itemScore?.ttcmScore;
                           const currentManagerScore = itemScore?.managerScore;
 
@@ -2075,7 +2109,7 @@ export default function KpiVcDocumentModal({
                           const aMaxTotal = aItems.reduce((acc, c) => acc + (c.maxScore || 0), 0);
                           const aSelfTotal = Math.round(aItems.reduce((acc, c) => {
                             const it = scoreItems.find(s => s.criterionId === c.id);
-                            return acc + (it ? (it.selfScore ?? c.maxScore) : c.maxScore);
+                            return acc + (it && typeof it.selfScore === 'number' ? it.selfScore : 0);
                           }, 0) * 10) / 10;
                           const aTtcmTotal = Math.round(aItems.reduce((acc, c) => {
                             const it = scoreItems.find(s => s.criterionId === c.id);
@@ -2091,7 +2125,7 @@ export default function KpiVcDocumentModal({
                           const bMaxTotal = bItems.reduce((acc, c) => acc + (c.maxScore || 0), 0);
                           const bSelfTotal = Math.round(bItems.reduce((acc, c) => {
                             const it = scoreItems.find(s => s.criterionId === c.id);
-                            return acc + (it ? (it.selfScore ?? c.maxScore) : c.maxScore);
+                            return acc + (it && typeof it.selfScore === 'number' ? it.selfScore : 0);
                           }, 0) * 10) / 10;
                           const bTtcmTotal = Math.round(bItems.reduce((acc, c) => {
                             const it = scoreItems.find(s => s.criterionId === c.id);
@@ -2143,12 +2177,27 @@ export default function KpiVcDocumentModal({
                                     min={0}
                                     max={criterion.maxScore}
                                     step={0.5}
-                                    value={itemScore?.selfScore ?? criterion.maxScore}
-                                    onChange={(e) => handleSelfScoreChange(criterion.id, Math.min(criterion.maxScore, Math.max(0, parseFloat(e.target.value) || 0)))}
+                                    value={currentSelfScore !== null ? currentSelfScore : ''}
+                                    onChange={(e) => {
+                                      const rawVal = e.target.value;
+                                      if (rawVal === '' || rawVal === null || rawVal === undefined) {
+                                        handleSelfScoreChange(criterion.id, null);
+                                      } else {
+                                        const parsed = parseFloat(rawVal);
+                                        if (isNaN(parsed)) {
+                                          handleSelfScoreChange(criterion.id, null);
+                                        } else {
+                                          handleSelfScoreChange(criterion.id, Math.min(criterion.maxScore, Math.max(0, parsed)));
+                                        }
+                                      }
+                                    }}
                                     className="w-14 p-1 text-center font-bold bg-white border border-blue-300 rounded text-blue-900 focus:ring-2 focus:ring-blue-500 font-mono"
+                                    placeholder="---"
                                   />
                                 ) : (
-                                  <span className="font-bold text-blue-900 font-mono">{currentSelfScore}</span>
+                                  <span className="font-bold text-blue-900 font-mono">
+                                    {currentSelfScore !== null ? currentSelfScore : '---'}
+                                  </span>
                                 )}
                               </td>
 
@@ -2160,8 +2209,20 @@ export default function KpiVcDocumentModal({
                                     min={0}
                                     max={criterion.maxScore}
                                     step={0.5}
-                                    value={currentTtcmScore ?? ''}
-                                    onChange={(e) => handleTtcmScoreChange(criterion.id, Math.min(criterion.maxScore, Math.max(0, parseFloat(e.target.value) || 0)))}
+                                    value={typeof currentTtcmScore === 'number' ? currentTtcmScore : ''}
+                                    onChange={(e) => {
+                                      const rawVal = e.target.value;
+                                      if (rawVal === '' || rawVal === null || rawVal === undefined) {
+                                        handleTtcmScoreChange(criterion.id, null);
+                                      } else {
+                                        const parsed = parseFloat(rawVal);
+                                        if (isNaN(parsed)) {
+                                          handleTtcmScoreChange(criterion.id, null);
+                                        } else {
+                                          handleTtcmScoreChange(criterion.id, Math.min(criterion.maxScore, Math.max(0, parsed)));
+                                        }
+                                      }
+                                    }}
                                     className="w-14 p-1 text-center font-bold bg-white border border-purple-300 rounded text-purple-950 focus:ring-2 focus:ring-purple-500 font-mono"
                                     placeholder="Điểm"
                                   />
@@ -2180,8 +2241,20 @@ export default function KpiVcDocumentModal({
                                     min={0}
                                     max={criterion.maxScore}
                                     step={0.5}
-                                    value={currentManagerScore ?? ''}
-                                    onChange={(e) => handleManagerScoreChange(criterion.id, Math.min(criterion.maxScore, Math.max(0, parseFloat(e.target.value) || 0)))}
+                                    value={typeof currentManagerScore === 'number' ? currentManagerScore : ''}
+                                    onChange={(e) => {
+                                      const rawVal = e.target.value;
+                                      if (rawVal === '' || rawVal === null || rawVal === undefined) {
+                                        handleManagerScoreChange(criterion.id, null);
+                                      } else {
+                                        const parsed = parseFloat(rawVal);
+                                        if (isNaN(parsed)) {
+                                          handleManagerScoreChange(criterion.id, null);
+                                        } else {
+                                          handleManagerScoreChange(criterion.id, Math.min(criterion.maxScore, Math.max(0, parsed)));
+                                        }
+                                      }
+                                    }}
                                     className="w-14 p-1 text-center font-bold bg-white border border-amber-300 rounded text-amber-950 focus:ring-2 focus:ring-amber-500 font-mono"
                                     placeholder="Điểm"
                                   />
@@ -2433,6 +2506,13 @@ export default function KpiVcDocumentModal({
                 </div>
               </h3>
 
+              {!isStep1Complete && (
+                <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs font-bold flex items-center gap-2">
+                  <AlertCircle size={16} className="text-amber-600 shrink-0" />
+                  <span>Chưa thể thực hiện đánh giá Cấp 2: Cá nhân chưa tự chấm điểm và lưu phiếu.</span>
+                </div>
+              )}
+
               <div className="p-2.5 bg-white border border-purple-200 rounded-lg text-xs flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <span className="text-slate-500">Người đánh giá cấp Tổ:</span>{' '}
@@ -2504,6 +2584,18 @@ export default function KpiVcDocumentModal({
                   </span>
                 </div>
               </h3>
+
+              {!isStep1Complete ? (
+                <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs font-bold flex items-center gap-2">
+                  <AlertCircle size={16} className="text-amber-600 shrink-0" />
+                  <span>Chưa thể thực hiện đánh giá Cấp 3: Cá nhân chưa tự chấm điểm và lưu phiếu.</span>
+                </div>
+              ) : !isStep2Complete && form?.hasTtcmEval !== false ? (
+                <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs font-bold flex items-center gap-2">
+                  <AlertCircle size={16} className="text-amber-600 shrink-0" />
+                  <span>Chưa thể thực hiện đánh giá Cấp 3: Tổ trưởng chuyên môn chưa hoàn thành và lưu kết quả đánh giá Cấp 2.</span>
+                </div>
+              ) : null}
 
               <div className="p-2.5 bg-white border border-blue-200 rounded-lg text-xs flex flex-wrap items-center justify-between gap-2">
                 <div>

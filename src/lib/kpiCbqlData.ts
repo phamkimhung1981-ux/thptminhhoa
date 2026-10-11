@@ -594,8 +594,6 @@ export const DEFAULT_CBQL_CRITERIA: KpiCbqlCriterion[] = [
  */
 export function initializeCbqlScoreItems(): KpiCbqlScoreItem[] {
   return DEFAULT_CBQL_CRITERIA.map(c => {
-    // Mặc định tự chấm mức 1 (Tốt/Khá) hoặc 0 để người dùng chọn
-    const defaultLevel = c.levels[0]; // Mức cao nhất làm gợi ý ban đầu
     return {
       criterionId: c.id,
       criterionCode: c.code,
@@ -605,15 +603,15 @@ export function initializeCbqlScoreItems(): KpiCbqlScoreItem[] {
       subCategoryTitle: c.subCategoryTitle,
       maxScore: c.maxScore,
       
-      selfScore: defaultLevel.score,
-      selfLevelId: defaultLevel.id,
-      selfLevelLabel: defaultLevel.label,
+      selfScore: null,
+      selfLevelId: null,
+      selfLevelLabel: '',
       selfEvidence: '',
       selfNote: '',
       
-      evaluatorScore: defaultLevel.score,
-      evaluatorLevelId: defaultLevel.id,
-      evaluatorLevelLabel: defaultLevel.label,
+      evaluatorScore: null,
+      evaluatorLevelId: null,
+      evaluatorLevelLabel: '',
       evaluatorNote: ''
     };
   });

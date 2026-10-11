@@ -68,7 +68,7 @@ export interface KpiVcScoreItem {
   selectedLevelId?: string | null;
   selectedLevelName?: string | null;
   selectedLevelCode?: string | null;
-  selfScore: number; // Điểm cá nhân tự chấm
+  selfScore: number | null; // Điểm cá nhân tự chấm (null khi chưa tự chấm)
   note?: string; // Ghi chú / minh chứng cá nhân
   
   // Tổ trưởng đánh giá

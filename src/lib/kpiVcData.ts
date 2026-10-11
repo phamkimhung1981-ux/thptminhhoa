@@ -731,22 +731,6 @@ export const initializeVcScoreItems = (criteria: KpiVcCriterion[] = DEFAULT_VC_C
   const activeCriteria = criteria.filter(c => c.isActive);
 
   return activeCriteria.map(c => {
-    let selfScore = 0;
-    let selectedLevelId: string | undefined = undefined;
-    let selectedLevelName: string | undefined = undefined;
-    let selectedLevelCode: string | undefined = undefined;
-
-    if (c.scoreType === 'select_level' && c.levels && c.levels.length > 0) {
-      // Không chọn mặc định để GV tự tích vào hộp kiểm
-      selectedLevelId = undefined;
-      selectedLevelName = undefined;
-      selectedLevelCode = undefined;
-      selfScore = 0;
-    } else {
-      // Mặc định điểm tối đa
-      selfScore = c.maxScore;
-    }
-
     return {
       criterionId: c.id,
       criterionCode: c.code,
@@ -757,10 +741,10 @@ export const initializeVcScoreItems = (criteria: KpiVcCriterion[] = DEFAULT_VC_C
       content: c.content,
       maxScore: c.maxScore,
       scoreType: c.scoreType,
-      selectedLevelId,
-      selectedLevelName,
-      selectedLevelCode,
-      selfScore,
+      selectedLevelId: undefined,
+      selectedLevelName: undefined,
+      selectedLevelCode: undefined,
+      selfScore: null, // Để trống mặc định khi khởi tạo phiếu mới
       note: '',
       ttcmScore: null,
       ttcmComment: '',
@@ -870,14 +854,18 @@ export const calculateVcTotals = (items: KpiVcScoreItem[]) => {
   };
 
   let totalScore = 0;
+  let evaluatedCount = 0;
 
   for (const item of items) {
-    const score = Math.max(0, Math.min(item.maxScore, Number(item.selfScore) || 0));
-    if (!groupScores[item.groupId]) {
-      groupScores[item.groupId] = 0;
+    if (item.selfScore !== undefined && item.selfScore !== null && !isNaN(Number(item.selfScore))) {
+      evaluatedCount++;
+      const score = Math.max(0, Math.min(item.maxScore, Number(item.selfScore) || 0));
+      if (!groupScores[item.groupId]) {
+        groupScores[item.groupId] = 0;
+      }
+      groupScores[item.groupId] += score;
+      totalScore += score;
     }
-    groupScores[item.groupId] += score;
-    totalScore += score;
   }
 
   // Làm tròn 1 chữ số thập phân
@@ -891,7 +879,9 @@ export const calculateVcTotals = (items: KpiVcScoreItem[]) => {
 
   return {
     groupScores,
-    totalScore
+    totalScore,
+    evaluatedCount,
+    hasSelfEvaluated: evaluatedCount > 0
   };
 };
 

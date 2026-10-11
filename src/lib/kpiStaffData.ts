@@ -464,7 +464,7 @@ export const createInitialStaffForm = (
     category: 'A_CHUNG',
     content: c.content,
     maxScore: c.maxScore,
-    selfScore: c.maxScore,
+    selfScore: null,
     evidence: ''
   }));
 
@@ -474,12 +474,12 @@ export const createInitialStaffForm = (
     category: 'B_VI_TRI',
     content: c.content,
     maxScore: c.maxScore,
-    selfScore: c.maxScore,
+    selfScore: null,
     evidence: ''
   }));
 
-  const genSelf = generalItems.reduce((acc, curr) => acc + curr.selfScore, 0);
-  const posSelf = positionItems.reduce((acc, curr) => acc + curr.selfScore, 0);
+  const genSelf = 0;
+  const posSelf = 0;
 
   return {
     id: `form_staff_${staff.id}_${period.id}`,
